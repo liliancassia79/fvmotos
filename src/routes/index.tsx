@@ -118,13 +118,13 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+      <header className="border-b-2 border-primary bg-foreground text-background">
         <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display text-lg font-bold">O</div>
+            <img src={logo} alt="FV Motos" className="h-14 w-14 object-contain" />
             <div>
-              <h1 className="text-lg font-semibold leading-none">Oficina</h1>
-              <p className="text-xs text-muted-foreground mt-1">Painel de Ordens de Serviço</p>
+              <h1 className="text-lg font-display font-bold leading-none tracking-tight">FV MOTOS</h1>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-primary mt-1.5">Oficina Mecânica</p>
             </div>
           </div>
           <div className="flex gap-2">
