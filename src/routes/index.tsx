@@ -1,13 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  loadOS,
-  saveOS,
-  nextStatus,
-  statusLabel,
-  statusOrder,
-  type OrdemServico,
-  type OSStatus,
+  loadOS, saveOS, nextStatus, statusLabel, statusOrder,
+  formatBRL, relativeTime, whatsappLink, exportarCSV,
+  type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
 
 export const Route = createFileRoute("/")({
@@ -20,97 +16,215 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "" };
+const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "" };
 
 function Dashboard() {
   const [items, setItems] = useState<OrdemServico[]>([]);
   const [form, setForm] = useState(empty);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
+  const [hidratado, setHidratado] = useState(false);
 
-  useEffect(() => setItems(loadOS()), []);
-  useEffect(() => { if (items.length || localStorage.getItem("oficina-os-v1")) saveOS(items); }, [items]);
+  useEffect(() => { setItems(loadOS()); setHidratado(true); }, []);
+  useEffect(() => { if (hidratado) saveOS(items); }, [items, hidratado]);
+
+  const filtered = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return items.filter((i) => {
+      if (filtroStatus !== "todos" && i.status !== filtroStatus) return false;
+      if (!q) return true;
+      return [i.modelo, i.placa, i.cliente, i.celular, i.defeito]
+        .some((c) => c.toLowerCase().includes(q));
+    });
+  }, [items, busca, filtroStatus]);
 
   const grouped = useMemo(() => {
     const g: Record<OSStatus, OrdemServico[]> = { fila: [], consertando: [], pronta: [] };
-    for (const it of items) g[it.status].push(it);
+    for (const it of filtered) g[it.status].push(it);
     return g;
-  }, [items]);
+  }, [filtered]);
+
+  const stats = useMemo(() => ({
+    fila: items.filter((i) => i.status === "fila").length,
+    consertando: items.filter((i) => i.status === "consertando").length,
+    pronta: items.filter((i) => i.status === "pronta").length,
+    faturamento: items.filter((i) => i.status === "pronta").reduce((s, i) => s + (i.valor ?? 0), 0),
+  }), [items]);
+
+  function resetForm() { setForm(empty); setEditingId(null); }
 
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!form.modelo || !form.placa || !form.cliente) return;
-    const novo: OrdemServico = {
-      id: crypto.randomUUID(),
-      ...form,
-      status: "fila",
-      criadoEm: Date.now(),
-    };
-    setItems((p) => [novo, ...p]);
-    setForm(empty);
+    const valor = form.valor ? Number(form.valor.replace(",", ".")) : undefined;
+
+    if (editingId) {
+      setItems((p) => p.map((it) => it.id === editingId
+        ? { ...it, ...form, valor, atualizadoEm: Date.now() }
+        : it));
+    } else {
+      setItems((p) => [{
+        id: crypto.randomUUID(),
+        ...form, valor,
+        status: "fila",
+        criadoEm: Date.now(),
+      }, ...p]);
+    }
+    resetForm();
+  }
+
+  function editar(it: OrdemServico) {
+    setEditingId(it.id);
+    setForm({
+      modelo: it.modelo, placa: it.placa, cliente: it.cliente,
+      celular: it.celular, defeito: it.defeito,
+      valor: it.valor?.toString() ?? "",
+      observacoes: it.observacoes ?? "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function advance(id: string) {
-    setItems((p) => p.map((it) => (it.id === id ? { ...it, status: nextStatus(it.status) } : it)));
+    setItems((p) => p.map((it) => {
+      if (it.id !== id) return it;
+      const novo = nextStatus(it.status);
+      return { ...it, status: novo, atualizadoEm: Date.now(), finalizadoEm: novo === "pronta" ? Date.now() : it.finalizadoEm };
+    }));
+  }
+
+  function voltar(id: string) {
+    setItems((p) => p.map((it) => {
+      if (it.id !== id) return it;
+      const i = statusOrder.indexOf(it.status);
+      const novo = statusOrder[Math.max(0, i - 1)];
+      return { ...it, status: novo, atualizadoEm: Date.now() };
+    }));
   }
 
   function remove(id: string) {
+    if (!confirm("Remover esta O.S.?")) return;
     setItems((p) => p.filter((it) => it.id !== id));
+    if (editingId === id) resetForm();
+  }
+
+  function limparEntregues() {
+    const n = stats.pronta;
+    if (!n) return;
+    if (!confirm(`Arquivar ${n} O.S. entregue${n > 1 ? "s" : ""}?`)) return;
+    setItems((p) => p.filter((i) => i.status !== "pronta"));
   }
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+        <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display text-lg font-bold">
-              O
-            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display text-lg font-bold">O</div>
             <div>
               <h1 className="text-lg font-semibold leading-none">Oficina</h1>
               <p className="text-xs text-muted-foreground mt-1">Painel de Ordens de Serviço</p>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground tabular-nums">
-            {items.length} O.S. {items.length === 1 ? "ativa" : "ativas"}
+          <div className="flex gap-2">
+            <button onClick={() => exportarCSV(items)} disabled={!items.length}
+              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
+              Exportar CSV
+            </button>
+            <button onClick={() => window.print()} disabled={!items.length}
+              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
+              Imprimir
+            </button>
           </div>
+        </div>
+        <div className="mx-auto max-w-7xl px-6 pb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="Na Fila" value={stats.fila} accent="bg-status-queue text-status-queue-foreground" />
+          <Stat label="Consertando" value={stats.consertando} accent="bg-status-fixing text-status-fixing-foreground" />
+          <Stat label="Prontas" value={stats.pronta} accent="bg-status-ready text-status-ready-foreground" />
+          <Stat label="Faturamento (prontas)" value={formatBRL(stats.faturamento)} />
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-8 grid gap-8 lg:grid-cols-[340px_1fr]">
         <section>
-          <div className="sticky top-6 rounded-xl border border-border bg-card p-5">
-            <h2 className="text-base font-semibold">Nova O.S.</h2>
-            <p className="text-xs text-muted-foreground mt-1">Cadastre uma moto rapidamente</p>
+          <div className="lg:sticky lg:top-6 rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold">{editingId ? "Editar O.S." : "Nova O.S."}</h2>
+              {editingId && (
+                <button onClick={resetForm} className="text-xs text-muted-foreground hover:text-foreground">cancelar</button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {editingId ? "Atualize os dados da moto" : "Cadastre uma moto rapidamente"}
+            </p>
             <form onSubmit={submit} className="mt-5 space-y-3">
               <Field label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} placeholder="Honda CG 160" />
               <Field label="Placa" value={form.placa} onChange={(v) => setForm({ ...form, placa: v.toUpperCase() })} placeholder="ABC1D23" />
               <Field label="Cliente" value={form.cliente} onChange={(v) => setForm({ ...form, cliente: v })} placeholder="Nome completo" />
               <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
+              <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Defeito</label>
-                <textarea
-                  value={form.defeito}
-                  onChange={(e) => setForm({ ...form, defeito: e.target.value })}
-                  placeholder="Descreva o problema"
-                  rows={3}
-                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                />
+                <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
+                  placeholder="Descreva o problema" rows={3}
+                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
               </div>
-              <button
-                type="submit"
-                className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                Cadastrar O.S.
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Observações internas</label>
+                <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                  placeholder="Peças usadas, notas..." rows={2}
+                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+              <button type="submit" className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+                {editingId ? "Salvar alterações" : "Cadastrar O.S."}
               </button>
             </form>
           </div>
         </section>
 
-        <section className="grid gap-5 md:grid-cols-3">
-          {statusOrder.map((s) => (
-            <Column key={s} status={s} items={grouped[s]} onAdvance={advance} onRemove={remove} />
-          ))}
+        <section className="space-y-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={busca} onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por placa, cliente, modelo..."
+              className="flex-1 min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <div className="flex gap-1 rounded-md border border-border bg-card p-1">
+              {(["todos", ...statusOrder] as const).map((s) => (
+                <button key={s} onClick={() => setFiltroStatus(s)}
+                  className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${filtroStatus === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  {s === "todos" ? "Todos" : statusLabel[s]}
+                </button>
+              ))}
+            </div>
+            {stats.pronta > 0 && (
+              <button onClick={limparEntregues}
+                className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">
+                Arquivar entregues
+              </button>
+            )}
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {statusOrder.map((s) => (
+              <Column key={s} status={s} items={grouped[s]}
+                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
+            ))}
+          </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card px-4 py-3">
+      <div className="flex items-center gap-2">
+        {accent && <span className={`inline-block h-2 w-2 rounded-full ${accent}`} />}
+        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      </div>
+      <p className="mt-1 font-display text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -119,12 +233,8 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
   return (
     <div>
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-      />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
     </div>
   );
 }
@@ -136,15 +246,14 @@ const statusStyles: Record<OSStatus, string> = {
 };
 
 function Column({
-  status,
-  items,
-  onAdvance,
-  onRemove,
+  status, items, onAdvance, onBack, onRemove, onEdit,
 }: {
   status: OSStatus;
   items: OrdemServico[];
   onAdvance: (id: string) => void;
+  onBack: (id: string) => void;
   onRemove: (id: string) => void;
+  onEdit: (it: OrdemServico) => void;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card/50 p-4">
@@ -162,43 +271,78 @@ function Column({
           </p>
         )}
         {items.map((it) => (
-          <article key={it.id} className="rounded-lg border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h4 className="font-display font-semibold text-sm truncate">{it.modelo}</h4>
-                <p className="font-mono text-xs text-muted-foreground mt-0.5">{it.placa}</p>
-              </div>
-              <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${statusStyles[status]}`}>
-                {statusLabel[status].split(" ")[0]}
-              </span>
-            </div>
-            <div className="mt-3 space-y-1 text-xs">
-              <p><span className="text-muted-foreground">Cliente:</span> {it.cliente}</p>
-              {it.celular && <p><span className="text-muted-foreground">Tel:</span> {it.celular}</p>}
-            </div>
-            {it.defeito && (
-              <p className="mt-3 text-xs text-foreground/80 bg-muted rounded-md p-2 leading-relaxed">
-                {it.defeito}
-              </p>
-            )}
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => onAdvance(it.id)}
-                className="flex-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-              >
-                {status === "pronta" ? "Reabrir" : "Avançar →"}
-              </button>
-              <button
-                onClick={() => onRemove(it.id)}
-                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
-                aria-label="Remover"
-              >
-                ×
-              </button>
-            </div>
-          </article>
+          <Card key={it.id} it={it} status={status}
+            onAdvance={onAdvance} onBack={onBack} onRemove={onRemove} onEdit={onEdit} />
         ))}
       </div>
     </div>
+  );
+}
+
+function Card({
+  it, status, onAdvance, onBack, onRemove, onEdit,
+}: {
+  it: OrdemServico; status: OSStatus;
+  onAdvance: (id: string) => void; onBack: (id: string) => void;
+  onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const msgPronta = `Olá ${it.cliente}, sua moto ${it.modelo} (${it.placa}) está pronta para retirada${it.valor ? `. Valor: ${formatBRL(it.valor)}` : ""}.`;
+
+  return (
+    <article className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <button onClick={() => setOpen((o) => !o)} className="min-w-0 text-left flex-1">
+          <h4 className="font-display font-semibold text-sm truncate">{it.modelo}</h4>
+          <p className="font-mono text-xs text-muted-foreground mt-0.5">{it.placa}</p>
+        </button>
+        {it.valor != null && (
+          <span className="shrink-0 text-xs font-medium tabular-nums">{formatBRL(it.valor)}</span>
+        )}
+      </div>
+
+      <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
+        <span className="truncate">{it.cliente}</span>
+        <span className="shrink-0 ml-2">{relativeTime(it.criadoEm)}</span>
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-2 text-xs border-t border-border pt-3">
+          {it.celular && <p><span className="text-muted-foreground">Tel:</span> {it.celular}</p>}
+          {it.defeito && (
+            <div>
+              <p className="text-muted-foreground mb-1">Defeito:</p>
+              <p className="bg-muted rounded-md p-2 leading-relaxed">{it.defeito}</p>
+            </div>
+          )}
+          {it.observacoes && (
+            <div>
+              <p className="text-muted-foreground mb-1">Obs:</p>
+              <p className="bg-muted rounded-md p-2 leading-relaxed">{it.observacoes}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <button onClick={() => onAdvance(it.id)}
+          className="flex-1 min-w-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90">
+          {status === "pronta" ? "Reabrir" : "Avançar →"}
+        </button>
+        {status !== "fila" && (
+          <button onClick={() => onBack(it.id)} title="Voltar status"
+            className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">←</button>
+        )}
+        {status === "pronta" && it.celular && (
+          <a href={whatsappLink(it.celular, msgPronta)} target="_blank" rel="noreferrer" title="Avisar cliente"
+            className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">W</a>
+        )}
+        <button onClick={() => onEdit(it)} title="Editar"
+          className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">✎</button>
+        <button onClick={() => onRemove(it.id)} title="Remover"
+          className="rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted">×</button>
+      </div>
+    </article>
   );
 }
