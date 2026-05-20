@@ -5,13 +5,14 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
+import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "Oficina · Ordens de Serviço" },
-      { name: "description", content: "Gerencie as O.S. da sua oficina de motos." },
+      { title: "FV Motos · Ordens de Serviço" },
+      { name: "description", content: "Gerencie as O.S. da FV Motos Oficina Mecânica." },
     ],
   }),
 });
