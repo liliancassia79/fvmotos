@@ -5,13 +5,14 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
+import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "Oficina · Ordens de Serviço" },
-      { name: "description", content: "Gerencie as O.S. da sua oficina de motos." },
+      { title: "FV Motos · Ordens de Serviço" },
+      { name: "description", content: "Gerencie as O.S. da FV Motos Oficina Mecânica." },
     ],
   }),
 });
@@ -117,33 +118,36 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+      <header className="border-b-2 border-primary bg-foreground text-background">
         <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-display text-lg font-bold">O</div>
+            <img src={logo} alt="FV Motos" className="h-14 w-14 object-contain" />
             <div>
-              <h1 className="text-lg font-semibold leading-none">Oficina</h1>
-              <p className="text-xs text-muted-foreground mt-1">Painel de Ordens de Serviço</p>
+              <h1 className="text-lg font-display font-bold leading-none tracking-tight">FV MOTOS</h1>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-primary mt-1.5">Oficina Mecânica</p>
             </div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => exportarCSV(items)} disabled={!items.length}
-              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
+              className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
               Exportar CSV
             </button>
             <button onClick={() => window.print()} disabled={!items.length}
-              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
+              className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
               Imprimir
             </button>
           </div>
         </div>
-        <div className="mx-auto max-w-7xl px-6 pb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+      </header>
+
+      <div className="bg-card border-b border-border">
+        <div className="mx-auto max-w-7xl px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Na Fila" value={stats.fila} accent="bg-status-queue text-status-queue-foreground" />
           <Stat label="Consertando" value={stats.consertando} accent="bg-status-fixing text-status-fixing-foreground" />
           <Stat label="Prontas" value={stats.pronta} accent="bg-status-ready text-status-ready-foreground" />
           <Stat label="Faturamento (prontas)" value={formatBRL(stats.faturamento)} />
         </div>
-      </header>
+      </div>
 
       <main className="mx-auto max-w-7xl px-6 py-8 grid gap-8 lg:grid-cols-[340px_1fr]">
         <section>
