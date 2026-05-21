@@ -186,7 +186,17 @@ function Dashboard() {
               <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
               <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Defeito</label>
+                <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
+                <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+                  <option value="">+ adicionar serviço…</option>
+                  {catalogo.map((s) => (
+                    <option key={s.id} value={s.id}>{s.nome} — {formatBRL(s.preco)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Defeito / Serviços</label>
                 <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
                   placeholder="Descreva o problema" rows={3}
                   className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
