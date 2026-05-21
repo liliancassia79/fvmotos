@@ -33,9 +33,20 @@ function Dashboard() {
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
   const [hidratado, setHidratado] = useState(false);
+  const [catalogo, setCatalogo] = useState<ServicoItem[]>([]);
 
-  useEffect(() => { setItems(loadOS()); setHidratado(true); }, []);
+  useEffect(() => { setItems(loadOS()); setCatalogo(loadCatalogo()); setHidratado(true); }, []);
   useEffect(() => { if (hidratado) saveOS(items); }, [items, hidratado]);
+
+  function aplicarServico(id: string) {
+    const s = catalogo.find((x) => x.id === id);
+    if (!s) return;
+    setForm((f) => ({
+      ...f,
+      defeito: f.defeito ? `${f.defeito}\n${s.nome}` : s.nome,
+      valor: ((Number(f.valor.replace(",", ".")) || 0) + s.preco).toFixed(2).replace(".", ","),
+    }));
+  }
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
