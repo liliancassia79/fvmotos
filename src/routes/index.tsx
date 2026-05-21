@@ -167,83 +167,102 @@ function Dashboard() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-8 grid gap-8 lg:grid-cols-[340px_1fr]">
-        <section>
-          <div className="lg:sticky lg:top-6 rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold">{editingId ? "Editar O.S." : "Nova O.S."}</h2>
-              {editingId && (
-                <button onClick={resetForm} className="text-xs text-muted-foreground hover:text-foreground">cancelar</button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {editingId ? "Atualize os dados da moto" : "Cadastre uma moto rapidamente"}
-            </p>
-            <form onSubmit={submit} className="mt-5 space-y-3">
-              <Field label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} placeholder="Honda CG 160" />
-              <Field label="Placa" value={form.placa} onChange={(v) => setForm({ ...form, placa: v.toUpperCase() })} placeholder="ABC1D23" />
-              <Field label="Cliente" value={form.cliente} onChange={(v) => setForm({ ...form, cliente: v })} placeholder="Nome completo" />
-              <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
-              <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
-                <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
-                  <option value="">+ adicionar serviço…</option>
-                  {catalogo.map((s) => (
-                    <option key={s.id} value={s.id}>{s.nome} — {formatBRL(s.preco)}</option>
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <Tabs defaultValue="os" className="w-full">
+          <TabsList className="mb-6 flex flex-wrap h-auto bg-card border border-border p-1">
+            <TabsTrigger value="os">Ordens de Serviço</TabsTrigger>
+            <TabsTrigger value="clientes">Clientes</TabsTrigger>
+            <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
+            <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="os" className="grid gap-8 lg:grid-cols-[340px_1fr]">
+            <section>
+              <div className="lg:sticky lg:top-6 rounded-xl border border-border bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-semibold">{editingId ? "Editar O.S." : "Nova O.S."}</h2>
+                  {editingId && (
+                    <button onClick={resetForm} className="text-xs text-muted-foreground hover:text-foreground">cancelar</button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {editingId ? "Atualize os dados da moto" : "Cadastre uma moto rapidamente"}
+                </p>
+                <form onSubmit={submit} className="mt-5 space-y-3">
+                  <Field label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} placeholder="Honda CG 160" />
+                  <Field label="Placa" value={form.placa} onChange={(v) => setForm({ ...form, placa: v.toUpperCase() })} placeholder="ABC1D23" />
+                  <Field label="Cliente" value={form.cliente} onChange={(v) => setForm({ ...form, cliente: v })} placeholder="Nome completo" />
+                  <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
+                  <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
+                    <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
+                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+                      <option value="">+ adicionar serviço…</option>
+                      {catalogo.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nome} — {formatBRL(s.preco)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Defeito / Serviços</label>
+                    <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
+                      placeholder="Descreva o problema" rows={3}
+                      className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Observações internas</label>
+                    <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                      placeholder="Peças usadas, notas..." rows={2}
+                      className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <button type="submit" className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+                    {editingId ? "Salvar alterações" : "Cadastrar O.S."}
+                  </button>
+                </form>
+              </div>
+            </section>
+
+            <section className="space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={busca} onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar por placa, cliente, modelo..."
+                  className="flex-1 min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <div className="flex gap-1 rounded-md border border-border bg-card p-1">
+                  {(["todos", ...statusOrder] as const).map((s) => (
+                    <button key={s} onClick={() => setFiltroStatus(s)}
+                      className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${filtroStatus === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                      {s === "todos" ? "Todos" : statusLabel[s]}
+                    </button>
                   ))}
-                </select>
+                </div>
+                {stats.pronta > 0 && (
+                  <button onClick={limparEntregues}
+                    className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">
+                    Arquivar entregues
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Defeito / Serviços</label>
-                <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
-                  placeholder="Descreva o problema" rows={3}
-                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Observações internas</label>
-                <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                  placeholder="Peças usadas, notas..." rows={2}
-                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-              </div>
-              <button type="submit" className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-                {editingId ? "Salvar alterações" : "Cadastrar O.S."}
-              </button>
-            </form>
-          </div>
-        </section>
 
-        <section className="space-y-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={busca} onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por placa, cliente, modelo..."
-              className="flex-1 min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-            <div className="flex gap-1 rounded-md border border-border bg-card p-1">
-              {(["todos", ...statusOrder] as const).map((s) => (
-                <button key={s} onClick={() => setFiltroStatus(s)}
-                  className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${filtroStatus === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                  {s === "todos" ? "Todos" : statusLabel[s]}
-                </button>
-              ))}
-            </div>
-            {stats.pronta > 0 && (
-              <button onClick={limparEntregues}
-                className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">
-                Arquivar entregues
-              </button>
-            )}
-          </div>
+              <div className="grid gap-5 md:grid-cols-3">
+                {statusOrder.map((s) => (
+                  <Column key={s} status={s} items={grouped[s]}
+                    onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
+                ))}
+              </div>
+            </section>
+          </TabsContent>
 
-          <div className="grid gap-5 md:grid-cols-3">
-            {statusOrder.map((s) => (
-              <Column key={s} status={s} items={grouped[s]}
-                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
-            ))}
-          </div>
-        </section>
+          <TabsContent value="clientes"><ClientesTab /></TabsContent>
+          <TabsContent value="orcamentos"><OrcamentosTab /></TabsContent>
+          <TabsContent value="agenda"><AgendamentosTab /></TabsContent>
+          <TabsContent value="faturamento"><FaturamentoTab /></TabsContent>
+          <TabsContent value="catalogo"><CatalogoTab /></TabsContent>
+        </Tabs>
       </main>
     </div>
   );
