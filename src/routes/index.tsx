@@ -5,6 +5,13 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
+import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ClientesTab } from "@/components/dashboard/ClientesTab";
+import { OrcamentosTab } from "@/components/dashboard/OrcamentosTab";
+import { AgendamentosTab } from "@/components/dashboard/AgendamentosTab";
+import { FaturamentoTab } from "@/components/dashboard/FaturamentoTab";
+import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
 import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
