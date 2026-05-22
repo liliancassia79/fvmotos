@@ -1,3 +1,5 @@
+import type { FormaPagamento } from "./pagamento";
+
 export type OSStatus = "fila" | "consertando" | "pronta";
 
 export interface OrdemServico {
@@ -8,12 +10,14 @@ export interface OrdemServico {
   celular: string;
   defeito: string;
   valor?: number;
+  formaPagamento?: FormaPagamento;
   observacoes?: string;
   status: OSStatus;
   criadoEm: number;
   atualizadoEm?: number;
   finalizadoEm?: number;
 }
+
 
 const KEY = "oficina-os-v1";
 

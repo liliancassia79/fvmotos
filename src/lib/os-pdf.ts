@@ -1,4 +1,5 @@
 import { formatBRL, formatDate, statusLabel, type OrdemServico } from "./os-storage";
+import { formaPagamentoLabel } from "./pagamento";
 import logo from "@/assets/fv-motos-logo.png";
 
 export function osMensagemWhatsapp(it: OrdemServico) {
@@ -12,12 +13,14 @@ export function osMensagemWhatsapp(it: OrdemServico) {
     it.defeito || "—",
     ``,
     it.valor != null ? `*Valor: ${formatBRL(it.valor)}*` : "",
+    it.formaPagamento ? `Pagamento: ${formaPagamentoLabel[it.formaPagamento]}` : "",
     `Status: ${statusLabel[it.status]}`,
     ``,
     `Aberta em ${formatDate(it.criadoEm)}`,
   ].filter(Boolean);
   return linhas.join("\n");
 }
+
 
 export function abrirPDFOrdemServico(it: OrdemServico) {
   const html = `<!doctype html>
@@ -84,9 +87,10 @@ export function abrirPDFOrdemServico(it: OrdemServico) {
   ${it.observacoes ? `<h2>Observações</h2><div class="box">${escape(it.observacoes)}</div>` : ""}
 
   <div class="total">
-    <span class="label">Valor Total</span>
+    <span class="label">Valor Total${it.formaPagamento ? ` · ${formaPagamentoLabel[it.formaPagamento]}` : ""}</span>
     <span class="val">${formatBRL(it.valor)}</span>
   </div>
+
 
   <div class="sign">
     <div>Cliente</div>

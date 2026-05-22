@@ -72,7 +72,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { name: "theme-color", content: "#FBBF24" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "FV Motos" },
+      { title: "FV Motos · Oficina" },
+
       { name: "description", content: "Oficina Fácil is a web app for motorcycle repair shops to manage service orders and customer information." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
@@ -86,12 +91,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3e948087-bb62-4f00-941f-dfeaa270bb61/id-preview-93ec6934--8f7548a8-5612-4141-a227-ae8f1ce1970e.lovable.app-1779393955540.png" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
