@@ -5,6 +5,7 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
+import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
@@ -98,7 +99,7 @@ function Dashboard() {
     setForm({
       modelo: it.modelo, placa: it.placa, cliente: it.cliente,
       celular: it.celular, defeito: it.defeito,
-      valor: it.valor?.toString() ?? "",
+      valor: it.valor != null ? it.valor.toFixed(2).replace(".", ",") : "",
       observacoes: it.observacoes ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
