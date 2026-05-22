@@ -38,6 +38,8 @@ function Dashboard() {
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
   const [hidratado, setHidratado] = useState(false);
   const [catalogo, setCatalogo] = useState<ServicoItem[]>([]);
+  const { install, installed, canInstall } = useInstallPrompt();
+
 
   useEffect(() => { setItems(loadOS()); setCatalogo(loadCatalogo()); setHidratado(true); }, []);
   useEffect(() => { if (hidratado) saveOS(items); }, [items, hidratado]);
@@ -154,7 +156,14 @@ function Dashboard() {
               <p className="text-[11px] uppercase tracking-[0.18em] text-primary mt-1.5">Oficina Mecânica</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {!installed && (
+              <button onClick={install}
+                className="rounded-md bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold hover:opacity-90"
+                title={canInstall ? "Instalar como aplicativo" : "Como instalar"}>
+                ↓ Instalar App
+              </button>
+            )}
             <button onClick={() => exportarCSV(items)} disabled={!items.length}
               className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
               Exportar CSV
@@ -164,6 +173,7 @@ function Dashboard() {
               Imprimir
             </button>
           </div>
+
         </div>
       </header>
 
@@ -206,6 +216,17 @@ function Dashboard() {
                   <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
                   <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
                   <div>
+                    <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
+                    <select value={form.formaPagamento}
+                      onChange={(e) => setForm({ ...form, formaPagamento: e.target.value as FormaPagamento | "" })}
+                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+                      <option value="">Selecione…</option>
+                      {formasPagamento.map((f) => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
                     <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
@@ -215,6 +236,7 @@ function Dashboard() {
                       ))}
                     </select>
                   </div>
+
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Defeito / Serviços</label>
                     <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
