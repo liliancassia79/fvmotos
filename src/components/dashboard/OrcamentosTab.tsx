@@ -200,6 +200,10 @@ export function OrcamentosTab() {
                 <div className="mt-2 flex justify-between text-sm font-semibold">
                   <span>Total</span><span className="tabular-nums">{formatBRL(orcamentoTotal(o))}</span>
                 </div>
+                {o.formaPagamento && (
+                  <p className="mt-1 text-xs text-muted-foreground">Pagamento: {formaPagamentoLabel[o.formaPagamento]}</p>
+                )}
+
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <button onClick={() => enviarWhats(o)}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90">
