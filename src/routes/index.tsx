@@ -7,6 +7,8 @@ import {
 } from "@/lib/os-storage";
 import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
+import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
+import { useInstallPrompt } from "@/lib/install-pwa";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
 import { OrcamentosTab } from "@/components/dashboard/OrcamentosTab";
@@ -14,6 +16,7 @@ import { AgendamentosTab } from "@/components/dashboard/AgendamentosTab";
 import { FaturamentoTab } from "@/components/dashboard/FaturamentoTab";
 import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
 import logo from "@/assets/fv-motos-logo.png";
+
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -25,7 +28,7 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "" };
+const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento };
 
 function Dashboard() {
   const [items, setItems] = useState<OrdemServico[]>([]);
@@ -78,21 +81,24 @@ function Dashboard() {
     e.preventDefault();
     if (!form.modelo || !form.placa || !form.cliente) return;
     const valor = form.valor ? Number(form.valor.replace(",", ".")) : undefined;
+    const formaPagamento = form.formaPagamento || undefined;
+    const { formaPagamento: _fp, ...rest } = form;
 
     if (editingId) {
       setItems((p) => p.map((it) => it.id === editingId
-        ? { ...it, ...form, valor, atualizadoEm: Date.now() }
+        ? { ...it, ...rest, valor, formaPagamento, atualizadoEm: Date.now() }
         : it));
     } else {
       setItems((p) => [{
         id: crypto.randomUUID(),
-        ...form, valor,
+        ...rest, valor, formaPagamento,
         status: "fila",
         criadoEm: Date.now(),
       }, ...p]);
     }
     resetForm();
   }
+
 
   function editar(it: OrdemServico) {
     setEditingId(it.id);
@@ -101,9 +107,11 @@ function Dashboard() {
       celular: it.celular, defeito: it.defeito,
       valor: it.valor != null ? it.valor.toFixed(2).replace(".", ",") : "",
       observacoes: it.observacoes ?? "",
+      formaPagamento: it.formaPagamento ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
 
   function advance(id: string) {
     setItems((p) => p.map((it) => {
