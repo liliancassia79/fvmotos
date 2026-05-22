@@ -147,10 +147,23 @@ export function OrcamentosTab() {
           )}
 
           <div>
+            <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
+            <select value={formaPagamento}
+              onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento | "")}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+              <option value="">Selecione…</option>
+              {formasPagamento.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="text-xs font-medium text-muted-foreground">Observações</label>
             <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2}
               className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
           </div>
+
 
           <button className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
             Salvar Orçamento
