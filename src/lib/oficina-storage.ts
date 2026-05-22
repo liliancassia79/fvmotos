@@ -1,5 +1,6 @@
 // Clientes, Orçamentos e Agendamentos
 import { formatBRL } from "./os-storage";
+import { formaPagamentoLabel, type FormaPagamento } from "./pagamento";
 
 export interface Cliente {
   id: string;
@@ -25,9 +26,11 @@ export interface Orcamento {
   moto?: string;
   itens: OrcamentoItem[];
   observacoes?: string;
+  formaPagamento?: FormaPagamento;
   status: OrcamentoStatus;
   criadoEm: number;
 }
+
 
 export type AgendamentoStatus = "pendente" | "confirmado" | "concluido" | "cancelado";
 
@@ -88,7 +91,9 @@ export function orcamentoMensagem(o: Orcamento) {
     ...o.itens.map((i) => `• ${i.descricao} — ${formatBRL(i.valor)}`),
     ``,
     `*Total: ${formatBRL(orcamentoTotal(o))}*`,
+    o.formaPagamento ? `Pagamento: ${formaPagamentoLabel[o.formaPagamento]}` : "",
     o.observacoes ? `\nObs: ${o.observacoes}` : "",
+
     ``,
     `Aguardamos sua confirmação. Obrigado!`,
   ].filter(Boolean);

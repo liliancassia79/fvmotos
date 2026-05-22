@@ -6,7 +6,9 @@ import {
 } from "@/lib/oficina-storage";
 import { formatBRL, whatsappLink } from "@/lib/os-storage";
 import { loadCatalogo, categoriaLabel, type ServicoItem } from "@/lib/catalog";
+import { formasPagamento, formaPagamentoLabel, type FormaPagamento } from "@/lib/pagamento";
 import { Field, Panel, Empty, Pill } from "./ui-bits";
+
 
 export function OrcamentosTab() {
   const [items, setItems] = useState<Orcamento[]>([]);
@@ -16,6 +18,8 @@ export function OrcamentosTab() {
   const [celular, setCelular] = useState("");
   const [moto, setMoto] = useState("");
   const [obs, setObs] = useState("");
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento | "">("");
+
   const [itens, setItens] = useState<OrcamentoItem[]>([]);
   const [novoDesc, setNovoDesc] = useState("");
   const [novoValor, setNovoValor] = useState("");
@@ -46,7 +50,7 @@ export function OrcamentosTab() {
     setItens((p) => p.filter((_, i) => i !== idx));
   }
   function reset() {
-    setCliente(""); setCelular(""); setMoto(""); setObs(""); setItens([]);
+    setCliente(""); setCelular(""); setMoto(""); setObs(""); setItens([]); setFormaPagamento("");
   }
 
   function salvar(e: FormEvent) {
@@ -55,7 +59,9 @@ export function OrcamentosTab() {
     const novo: Orcamento = {
       id: crypto.randomUUID(),
       cliente, celular, moto, observacoes: obs, itens,
+      formaPagamento: formaPagamento || undefined,
       status: "rascunho", criadoEm: Date.now(),
+
     };
     setItems((p) => [novo, ...p]);
     reset();
@@ -141,10 +147,23 @@ export function OrcamentosTab() {
           )}
 
           <div>
+            <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
+            <select value={formaPagamento}
+              onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento | "")}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+              <option value="">Selecione…</option>
+              {formasPagamento.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label className="text-xs font-medium text-muted-foreground">Observações</label>
             <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2}
               className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
           </div>
+
 
           <button className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
             Salvar Orçamento
@@ -181,6 +200,10 @@ export function OrcamentosTab() {
                 <div className="mt-2 flex justify-between text-sm font-semibold">
                   <span>Total</span><span className="tabular-nums">{formatBRL(orcamentoTotal(o))}</span>
                 </div>
+                {o.formaPagamento && (
+                  <p className="mt-1 text-xs text-muted-foreground">Pagamento: {formaPagamentoLabel[o.formaPagamento]}</p>
+                )}
+
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <button onClick={() => enviarWhats(o)}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90">
