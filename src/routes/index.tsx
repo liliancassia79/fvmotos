@@ -386,9 +386,12 @@ function Card({
           <button onClick={() => onBack(it.id)} title="Voltar status"
             className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">←</button>
         )}
-        {status === "pronta" && it.celular && (
-          <a href={whatsappLink(it.celular, msgPronta)} target="_blank" rel="noreferrer" title="Avisar cliente"
-            className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">W</a>
+        <button onClick={() => abrirPDFOrdemServico(it)} title="Gerar PDF da O.S."
+          className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">PDF</button>
+        {it.celular && (
+          <a href={whatsappLink(it.celular, status === "pronta" ? msgPronta : osMensagemWhatsapp(it))}
+            target="_blank" rel="noreferrer" title="Enviar via WhatsApp"
+            className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">WhatsApp</a>
         )}
         <button onClick={() => onEdit(it)} title="Editar"
           className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">✎</button>
