@@ -5,6 +5,7 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
+import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
@@ -98,7 +99,7 @@ function Dashboard() {
     setForm({
       modelo: it.modelo, placa: it.placa, cliente: it.cliente,
       celular: it.celular, defeito: it.defeito,
-      valor: it.valor?.toString() ?? "",
+      valor: it.valor != null ? it.valor.toFixed(2).replace(".", ",") : "",
       observacoes: it.observacoes ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -385,9 +386,12 @@ function Card({
           <button onClick={() => onBack(it.id)} title="Voltar status"
             className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">←</button>
         )}
-        {status === "pronta" && it.celular && (
-          <a href={whatsappLink(it.celular, msgPronta)} target="_blank" rel="noreferrer" title="Avisar cliente"
-            className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">W</a>
+        <button onClick={() => abrirPDFOrdemServico(it)} title="Gerar PDF da O.S."
+          className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">PDF</button>
+        {it.celular && (
+          <a href={whatsappLink(it.celular, status === "pronta" ? msgPronta : osMensagemWhatsapp(it))}
+            target="_blank" rel="noreferrer" title="Enviar via WhatsApp"
+            className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">WhatsApp</a>
         )}
         <button onClick={() => onEdit(it)} title="Editar"
           className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">✎</button>
