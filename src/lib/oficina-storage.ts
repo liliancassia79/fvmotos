@@ -91,7 +91,9 @@ export function orcamentoMensagem(o: Orcamento) {
     ...o.itens.map((i) => `• ${i.descricao} — ${formatBRL(i.valor)}`),
     ``,
     `*Total: ${formatBRL(orcamentoTotal(o))}*`,
+    o.formaPagamento ? `Pagamento: ${formaPagamentoLabel[o.formaPagamento]}` : "",
     o.observacoes ? `\nObs: ${o.observacoes}` : "",
+
     ``,
     `Aguardamos sua confirmação. Obrigado!`,
   ].filter(Boolean);

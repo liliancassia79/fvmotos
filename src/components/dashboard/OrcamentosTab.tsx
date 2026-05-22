@@ -6,7 +6,9 @@ import {
 } from "@/lib/oficina-storage";
 import { formatBRL, whatsappLink } from "@/lib/os-storage";
 import { loadCatalogo, categoriaLabel, type ServicoItem } from "@/lib/catalog";
+import { formasPagamento, formaPagamentoLabel, type FormaPagamento } from "@/lib/pagamento";
 import { Field, Panel, Empty, Pill } from "./ui-bits";
+
 
 export function OrcamentosTab() {
   const [items, setItems] = useState<Orcamento[]>([]);
@@ -16,6 +18,8 @@ export function OrcamentosTab() {
   const [celular, setCelular] = useState("");
   const [moto, setMoto] = useState("");
   const [obs, setObs] = useState("");
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento | "">("");
+
   const [itens, setItens] = useState<OrcamentoItem[]>([]);
   const [novoDesc, setNovoDesc] = useState("");
   const [novoValor, setNovoValor] = useState("");
@@ -46,7 +50,7 @@ export function OrcamentosTab() {
     setItens((p) => p.filter((_, i) => i !== idx));
   }
   function reset() {
-    setCliente(""); setCelular(""); setMoto(""); setObs(""); setItens([]);
+    setCliente(""); setCelular(""); setMoto(""); setObs(""); setItens([]); setFormaPagamento("");
   }
 
   function salvar(e: FormEvent) {
@@ -55,7 +59,9 @@ export function OrcamentosTab() {
     const novo: Orcamento = {
       id: crypto.randomUUID(),
       cliente, celular, moto, observacoes: obs, itens,
+      formaPagamento: formaPagamento || undefined,
       status: "rascunho", criadoEm: Date.now(),
+
     };
     setItems((p) => [novo, ...p]);
     reset();
