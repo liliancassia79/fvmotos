@@ -123,7 +123,9 @@ function Dashboard() {
     setItems((p) => p.map((it) => {
       if (it.id !== id) return it;
       const novo = nextStatus(it.status);
-      return { ...it, status: novo, atualizadoEm: Date.now(), finalizadoEm: novo === "pronta" ? Date.now() : it.finalizadoEm };
+      const atualizado = { ...it, status: novo, atualizadoEm: Date.now(), finalizadoEm: novo === "pronta" ? Date.now() : it.finalizadoEm };
+      notificarMudancaStatus(atualizado);
+      return atualizado;
     }));
   }
 
@@ -132,7 +134,9 @@ function Dashboard() {
       if (it.id !== id) return it;
       const i = statusOrder.indexOf(it.status);
       const novo = statusOrder[Math.max(0, i - 1)];
-      return { ...it, status: novo, atualizadoEm: Date.now() };
+      const atualizado = { ...it, status: novo, atualizadoEm: Date.now() };
+      notificarMudancaStatus(atualizado);
+      return atualizado;
     }));
   }
 
