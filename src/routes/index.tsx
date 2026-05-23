@@ -9,12 +9,16 @@ import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
 import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
 import { useInstallPrompt } from "@/lib/install-pwa";
+import { notificarMudancaStatus } from "@/lib/notificacoes";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
 import { OrcamentosTab } from "@/components/dashboard/OrcamentosTab";
 import { AgendamentosTab } from "@/components/dashboard/AgendamentosTab";
 import { FaturamentoTab } from "@/components/dashboard/FaturamentoTab";
 import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
+import { FotosTab } from "@/components/dashboard/FotosTab";
+import { NotificacoesTab } from "@/components/dashboard/NotificacoesTab";
+import { HistoricoTab } from "@/components/dashboard/HistoricoTab";
 import logo from "@/assets/fv-motos-logo.png";
 
 
