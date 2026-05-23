@@ -155,13 +155,13 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b-2 border-primary bg-foreground text-background">
-        <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
+      <header className="border-b-2 border-primary bg-background">
+        <div className="mx-auto max-w-[1400px] px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="FV Motos" className="h-14 w-14 object-contain" />
+            <img src={logo} alt="FV Motos" className="h-12 w-12 object-contain" />
             <div>
-              <h1 className="text-lg font-display font-bold leading-none tracking-tight">FV MOTOS</h1>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-primary mt-1.5">Oficina Mecânica</p>
+              <h1 className="text-lg font-display font-bold leading-none tracking-tight text-primary">FV MOTOS</h1>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mt-1.5">Oficina Mecânica</p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -173,39 +173,42 @@ function Dashboard() {
               </button>
             )}
             <button onClick={() => exportarCSV(items)} disabled={!items.length}
-              className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
+              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
               Exportar CSV
             </button>
             <button onClick={() => window.print()} disabled={!items.length}
-              className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
+              className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
               Imprimir
             </button>
           </div>
-
         </div>
       </header>
 
       <div className="bg-card border-b border-border">
-        <div className="mx-auto max-w-7xl px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Na Fila" value={stats.fila} accent="bg-status-queue text-status-queue-foreground" />
-          <Stat label="Consertando" value={stats.consertando} accent="bg-status-fixing text-status-fixing-foreground" />
-          <Stat label="Prontas" value={stats.pronta} accent="bg-status-ready text-status-ready-foreground" />
+        <div className="mx-auto max-w-[1400px] px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Stat label="Na Fila" value={stats.fila} accent="bg-status-queue" />
+          <Stat label="Consertando" value={stats.consertando} accent="bg-status-fixing" />
+          <Stat label="Prontas" value={stats.pronta} accent="bg-status-ready" />
           <Stat label="Faturamento (prontas)" value={formatBRL(stats.faturamento)} />
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        <Tabs defaultValue="os" className="w-full">
-          <TabsList className="mb-6 flex flex-wrap h-auto bg-card border border-border p-1">
-            <TabsTrigger value="os">Ordens de Serviço</TabsTrigger>
-            <TabsTrigger value="clientes">Clientes</TabsTrigger>
-            <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
-            <TabsTrigger value="agenda">Agenda</TabsTrigger>
-            <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
-            <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+      <main className="mx-auto max-w-[1400px] px-4 sm:px-6 py-6">
+        <Tabs defaultValue="os" orientation="vertical" className="flex flex-col lg:flex-row gap-6">
+          <TabsList className="lg:sticky lg:top-4 self-start flex lg:flex-col h-auto w-full lg:w-56 shrink-0 bg-card border border-border p-2 gap-1 overflow-x-auto lg:overflow-visible">
+            <SideTab value="os">📋 Ordens de Serviço</SideTab>
+            <SideTab value="fotos">📷 Fotos</SideTab>
+            <SideTab value="notificacoes">🔔 Notificações</SideTab>
+            <SideTab value="historico">🛵 Histórico</SideTab>
+            <SideTab value="clientes">👤 Clientes</SideTab>
+            <SideTab value="orcamentos">💬 Orçamentos</SideTab>
+            <SideTab value="agenda">📅 Agenda</SideTab>
+            <SideTab value="faturamento">💰 Faturamento</SideTab>
+            <SideTab value="catalogo">🛠 Catálogo</SideTab>
           </TabsList>
 
-          <TabsContent value="os" className="grid gap-8 lg:grid-cols-[340px_1fr]">
+          <div className="flex-1 min-w-0">
+          <TabsContent value="os" className="grid gap-8 lg:grid-cols-[340px_1fr] mt-0">
             <section>
               <div className="lg:sticky lg:top-6 rounded-xl border border-border bg-card p-5">
                 <div className="flex items-center justify-between">
@@ -296,14 +299,29 @@ function Dashboard() {
             </section>
           </TabsContent>
 
-          <TabsContent value="clientes"><ClientesTab /></TabsContent>
-          <TabsContent value="orcamentos"><OrcamentosTab /></TabsContent>
-          <TabsContent value="agenda"><AgendamentosTab /></TabsContent>
-          <TabsContent value="faturamento"><FaturamentoTab /></TabsContent>
-          <TabsContent value="catalogo"><CatalogoTab /></TabsContent>
+          <TabsContent value="fotos" className="mt-0"><FotosTab /></TabsContent>
+          <TabsContent value="notificacoes" className="mt-0"><NotificacoesTab /></TabsContent>
+          <TabsContent value="historico" className="mt-0"><HistoricoTab /></TabsContent>
+          <TabsContent value="clientes" className="mt-0"><ClientesTab /></TabsContent>
+          <TabsContent value="orcamentos" className="mt-0"><OrcamentosTab /></TabsContent>
+          <TabsContent value="agenda" className="mt-0"><AgendamentosTab /></TabsContent>
+          <TabsContent value="faturamento" className="mt-0"><FaturamentoTab /></TabsContent>
+          <TabsContent value="catalogo" className="mt-0"><CatalogoTab /></TabsContent>
+          </div>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function SideTab({ value, children }: { value: string; children: React.ReactNode }) {
+  return (
+    <TabsTrigger
+      value={value}
+      className="w-full justify-start lg:px-3 lg:py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+    >
+      {children}
+    </TabsTrigger>
   );
 }
 
