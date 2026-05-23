@@ -15,7 +15,8 @@ interface PlacaInfo {
   ultimaVisita: number;
 }
 
-const toneFor = (s: OSStatus) => (s === "fila" ? "queue" : s === "consertando" ? "fixing" : "ready") as const;
+const toneFor = (s: OSStatus): "queue" | "fixing" | "ready" =>
+  s === "fila" ? "queue" : s === "consertando" ? "fixing" : "ready";
 
 export function HistoricoTab() {
   const [oss, setOss] = useState<OrdemServico[]>([]);
