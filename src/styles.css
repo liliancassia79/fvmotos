@@ -40,32 +40,32 @@
 
 :root {
   --radius: 0.75rem;
-  /* FV Motos: preto profundo + amarelo (#FBBF24) — sem branco */
-  --background: oklch(0.16 0 0);
-  --foreground: oklch(0.96 0.02 88);
-  --card: oklch(0.22 0 0);
-  --card-foreground: oklch(0.96 0.02 88);
-  --popover: oklch(0.22 0 0);
-  --popover-foreground: oklch(0.96 0.02 88);
+  /* FV Motos: preto profundo + amarelo vibrante (#FBBF24) */
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.14 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.14 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.14 0 0);
   --primary: oklch(0.84 0.18 88);
   --primary-foreground: oklch(0.14 0 0);
-  --secondary: oklch(0.26 0 0);
-  --secondary-foreground: oklch(0.96 0.02 88);
-  --muted: oklch(0.26 0 0);
-  --muted-foreground: oklch(0.72 0.04 88);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.14 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.45 0 0);
   --accent: oklch(0.84 0.18 88);
   --accent-foreground: oklch(0.14 0 0);
-  --destructive: oklch(0.62 0.22 27);
-  --destructive-foreground: oklch(0.96 0.02 88);
-  --border: oklch(0.32 0 0);
-  --input: oklch(0.32 0 0);
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
   --ring: oklch(0.84 0.18 88);
 
   --status-queue: oklch(0.84 0.18 88);
   --status-queue-foreground: oklch(0.14 0 0);
-  --status-fixing: oklch(0.55 0.18 50);
-  --status-fixing-foreground: oklch(0.14 0 0);
-  --status-ready: oklch(0.7 0.18 145);
+  --status-fixing: oklch(0.14 0 0);
+  --status-fixing-foreground: oklch(0.84 0.18 88);
+  --status-ready: oklch(0.65 0.18 145);
   --status-ready-foreground: oklch(0.14 0 0);
 }
 
