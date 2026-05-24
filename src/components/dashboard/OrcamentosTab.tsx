@@ -53,7 +53,7 @@ export function OrcamentosTab() {
       await orcDB.create({
         cliente, celular, itens, total,
         formaPagamento: formaPagamento || undefined,
-        status: "rascunho", observacoes: obs || undefined,
+        status: "rascunho", pago: false, observacoes: obs || undefined,
       });
       reset(); await reload();
     } catch (err) { alert((err as Error).message); }
