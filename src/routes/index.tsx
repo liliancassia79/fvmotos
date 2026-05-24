@@ -319,7 +319,19 @@ function OSView() {
             {statusOrder.map((s) => (
               <Column key={s} status={s} items={grouped[s]}
                 onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar}
-                onTogglePago={async (id, pago) => { await osDB.update(id, { pago, atualizadoEm: Date.now() }); refresh(); }} />
+                onTogglePago={async (id, pago) => {
+                  const os = items.find((x) => x.id === id);
+                  const patch: any = { pago, atualizadoEm: Date.now() };
+                  if (pago && os && (os.valor == null || isNaN(os.valor))) {
+                    const v = window.prompt("Informe o valor pago (R$):", "");
+                    if (v == null) return;
+                    const n = Number(String(v).replace(",", "."));
+                    if (isNaN(n) || n < 0) { alert("Valor inválido"); return; }
+                    patch.valor = n;
+                  }
+                  await osDB.update(id, patch); refresh();
+                }} />
+
             ))}
           </div>
         </section>
