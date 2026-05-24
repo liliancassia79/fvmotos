@@ -12,6 +12,7 @@ export interface OrdemServico {
   valor?: number;
   formaPagamento?: FormaPagamento;
   observacoes?: string;
+  fotos?: string[];
   status: OSStatus;
   criadoEm: number;
   atualizadoEm?: number;
