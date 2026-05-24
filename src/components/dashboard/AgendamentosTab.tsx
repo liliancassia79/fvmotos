@@ -32,13 +32,14 @@ export function AgendamentosTab() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!form.cliente || !form.data || !form.servico) return;
+    const servicoFinal = form.servico === "Outro" ? form.servicoOutro.trim() : form.servico;
+    if (!form.cliente || !form.data || !servicoFinal) return;
     setBusy(true);
     try {
       await agDB.create({
         cliente: form.cliente, celular: form.celular,
         dataHora: new Date(form.data).toISOString(),
-        servico: form.servico, observacoes: form.observacoes || undefined,
+        servico: servicoFinal, observacoes: form.observacoes || undefined,
         confirmado: false,
       });
       setForm(empty); await reload();
