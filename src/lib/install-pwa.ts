@@ -22,8 +22,8 @@ export function useInstallPrompt() {
     try {
       const inIframe = window.self !== window.top;
       const host = window.location.hostname;
-      const isPreview = host.includes("lovableproject.com") || host.includes("id-preview--") || host.includes("lovable.app");
-      const allowSW = !inIframe && (!isPreview || host === "gestaofvoficina.lovable.app" || host.endsWith(".lovable.app"));
+      const isPreview = host.includes("id-preview--") || host.includes("lovableproject.com");
+      const allowSW = !inIframe && !isPreview;
       if ("serviceWorker" in navigator && allowSW && window.location.protocol === "https:") {
         navigator.serviceWorker.register("/sw.js").catch(() => {});
       }
