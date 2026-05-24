@@ -448,6 +448,10 @@ function Card({
           <button onClick={() => onBack(it.id)} title="Voltar status"
             className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">←</button>
         )}
+        <button onClick={() => onTogglePago(it.id, !it.pago)} title={it.pago ? "Marcar como não pago" : "Marcar como pago"}
+          className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${it.pago ? "border-emerald-600/40 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/20" : "border-border hover:bg-muted"}`}>
+          {it.pago ? "✓ Pago" : "Pagar"}
+        </button>
         <button onClick={() => abrirPDFOrdemServico(it)} title="Gerar PDF da O.S."
           className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">PDF</button>
         {it.celular && (
