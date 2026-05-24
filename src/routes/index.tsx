@@ -102,7 +102,7 @@ function AppShell() {
   );
 }
 
-const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento, fotos: [] as string[] };
+const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento, fotos: [] as string[], pago: false };
 
 function OSView() {
   const [items, setItems] = useState<OrdemServico[]>([]);
