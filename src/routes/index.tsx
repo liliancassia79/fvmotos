@@ -9,8 +9,6 @@ import { osDB, catDB, type ServicoDB } from "@/lib/db";
 import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
 import { useInstallPrompt } from "@/lib/install-pwa";
-import { signOut } from "@/hooks/use-session";
-import { AuthGate } from "@/components/AuthGate";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
 import { OrcamentosTab } from "@/components/dashboard/OrcamentosTab";
 import { AgendamentosTab } from "@/components/dashboard/AgendamentosTab";
@@ -21,7 +19,7 @@ import { FotosUpload } from "@/components/dashboard/FotosUpload";
 import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
-  component: () => <AuthGate><AppShell /></AuthGate>,
+  component: AppShell,
   head: () => ({
     meta: [
       { title: "FV Motos · Gestão da Oficina" },
@@ -51,12 +49,9 @@ function AppShell() {
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
       <aside className={`${mobileOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:sticky top-0 z-40 h-screen w-60 shrink-0 border-r border-border bg-card flex flex-col transition-transform`}>
-        <div className="px-4 py-5 border-b border-border flex items-center gap-3">
-          <img src={logo} alt="FV Motos" className="h-10 w-10 object-contain" />
-          <div>
-            <p className="font-display font-bold leading-none">FV MOTOS</p>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1">Oficina</p>
-          </div>
+        <div className="px-4 py-5 border-b border-border flex flex-col items-center gap-2">
+          <img src={logo} alt="FV Motos" className="h-32 w-32 object-contain drop-shadow-lg" />
+          <p className="text-[10px] uppercase tracking-[0.18em] text-primary">Gestão da Oficina</p>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {menu.map((m) => (
@@ -79,10 +74,6 @@ function AppShell() {
               ↓ Instalar App
             </button>
           )}
-          <button onClick={() => signOut()}
-            className="w-full rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-            Sair
-          </button>
         </div>
       </aside>
 
@@ -94,10 +85,7 @@ function AppShell() {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="md:hidden sticky top-0 z-20 border-b border-border bg-card px-4 py-3 flex items-center justify-between">
           <button onClick={() => setMobileOpen(true)} className="rounded-md border border-border px-3 py-1.5 text-sm">☰ Menu</button>
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="" className="h-7 w-7 object-contain" />
-            <span className="font-display font-bold text-sm">FV MOTOS</span>
-          </div>
+          <img src={logo} alt="FV Motos" className="h-10 w-10 object-contain" />
         </header>
 
         <main className="flex-1 px-4 md:px-8 py-6 max-w-7xl w-full mx-auto">
