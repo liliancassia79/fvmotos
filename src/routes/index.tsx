@@ -83,9 +83,16 @@ function AppShell() {
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="md:hidden sticky top-0 z-20 border-b border-border bg-card px-4 py-3 flex items-center justify-between">
+        <header className="md:hidden sticky top-0 z-20 border-b border-border bg-card px-4 py-3 flex items-center justify-between gap-2">
           <button onClick={() => setMobileOpen(true)} className="rounded-md border border-border px-3 py-1.5 text-sm">☰ Menu</button>
           <img src={logo} alt="FV Motos" className="h-10 w-10 object-contain" />
+          {!installed && (
+            <button onClick={install}
+              className="rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:opacity-90"
+              title={canInstall ? "Instalar como aplicativo" : "Como instalar"}>
+              ↓ Instalar
+            </button>
+          )}
         </header>
 
         <main className="flex-1 px-4 md:px-8 py-6 max-w-7xl w-full mx-auto">
