@@ -14,19 +14,29 @@ export function FaturamentoTab() {
   }, []);
 
   const stats = useMemo(() => {
-    const prontas = os.filter((o) => o.status === "pronta");
-    const faturado = prontas.reduce((s, o) => s + (o.valor ?? 0), 0);
-    const aberto = os.filter((o) => o.status !== "pronta").reduce((s, o) => s + (o.valor ?? 0), 0);
-    const aprovados = orcs.filter((o) => o.status === "aprovado");
+    const pagasOS = os.filter((o) => o.pago);
+    const pagosOrc = orcs.filter((o) => o.pago);
+    const faturadoOS = pagasOS.reduce((s, o) => s + (o.valor ?? 0), 0);
+    const faturadoOrc = pagosOrc.reduce((s, o) => s + o.total, 0);
+    const faturado = faturadoOS + faturadoOrc;
+    const aberto =
+      os.filter((o) => !o.pago).reduce((s, o) => s + (o.valor ?? 0), 0) +
+      orcs.filter((o) => !o.pago && o.status !== "recusado").reduce((s, o) => s + o.total, 0);
+    const aprovados = orcs.filter((o) => o.status === "aprovado" && !o.pago);
     const previsto = aprovados.reduce((s, o) => s + o.total, 0);
     const agora = new Date();
     const mes = agora.getMonth(), ano = agora.getFullYear();
-    const mesAtual = prontas.filter((o) => {
-      const d = new Date(o.finalizadoEm ?? o.criadoEm);
+    const noMes = (ts: number) => {
+      const d = new Date(ts);
       return d.getMonth() === mes && d.getFullYear() === ano;
-    }).reduce((s, o) => s + (o.valor ?? 0), 0);
-    const ticketMedio = prontas.length ? faturado / prontas.length : 0;
-    return { faturado, aberto, previsto, mesAtual, ticketMedio, prontas };
+    };
+    const mesAtual =
+      pagasOS.filter((o) => noMes(o.finalizadoEm ?? o.atualizadoEm ?? o.criadoEm))
+        .reduce((s, o) => s + (o.valor ?? 0), 0) +
+      pagosOrc.filter((o) => noMes(o.criadoEm)).reduce((s, o) => s + o.total, 0);
+    const totalPagos = pagasOS.length + pagosOrc.length;
+    const ticketMedio = totalPagos ? faturado / totalPagos : 0;
+    return { faturado, aberto, previsto, mesAtual, ticketMedio, prontas: pagasOS };
   }, [os, orcs]);
 
   return (
