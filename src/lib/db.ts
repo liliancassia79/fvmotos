@@ -82,6 +82,7 @@ export interface OrcamentoDB {
   itens: OrcamentoItem[]; total: number;
   formaPagamento?: FormaPagamento;
   status: OrcStatus;
+  pago?: boolean;
   observacoes?: string;
   criadoEm: number;
 }
@@ -91,6 +92,7 @@ const fromOrc = (r: any): OrcamentoDB => ({
   total: Number(r.total ?? 0),
   formaPagamento: (r.forma_pagamento ?? undefined) as FormaPagamento | undefined,
   status: (r.status ?? "rascunho") as OrcStatus,
+  pago: !!r.pago,
   observacoes: r.observacoes ?? undefined,
   criadoEm: new Date(r.created_at).getTime(),
 });
@@ -102,11 +104,14 @@ export const orcDB = {
   async create(o: Omit<OrcamentoDB, "id" | "criadoEm">) {
     const { error } = await supabase.from("orcamentos").insert({
       cliente: o.cliente, celular: o.celular || null, itens: o.itens as any, total: o.total,
-      forma_pagamento: o.formaPagamento ?? null, status: o.status, observacoes: o.observacoes ?? null,
+      forma_pagamento: o.formaPagamento ?? null, status: o.status, pago: !!o.pago, observacoes: o.observacoes ?? null,
     }); if (error) throw error;
   },
   async setStatus(id: string, status: OrcStatus) {
     const { error } = await supabase.from("orcamentos").update({ status }).eq("id", id); if (error) throw error;
+  },
+  async setPago(id: string, pago: boolean) {
+    const { error } = await supabase.from("orcamentos").update({ pago }).eq("id", id); if (error) throw error;
   },
   async remove(id: string) {
     const { error } = await supabase.from("orcamentos").delete().eq("id", id); if (error) throw error;
