@@ -1,43 +1,38 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  loadOrcamentos, saveOrcamentos, orcamentoTotal, orcamentoMensagem,
-  orcamentoStatusLabel,
-  type Orcamento, type OrcamentoItem, type OrcamentoStatus,
-} from "@/lib/oficina-storage";
+  orcDB, catDB, orcStatusLabel,
+  type OrcamentoDB, type OrcamentoItem, type OrcStatus, type ServicoDB, categoriaLabel,
+} from "@/lib/db";
+import { orcamentoMensagem } from "@/lib/oficina-storage";
 import { formatBRL, whatsappLink } from "@/lib/os-storage";
-import { loadCatalogo, categoriaLabel, type ServicoItem } from "@/lib/catalog";
 import { formasPagamento, formaPagamentoLabel, type FormaPagamento } from "@/lib/pagamento";
 import { Field, Panel, Empty, Pill } from "./ui-bits";
 
-
 export function OrcamentosTab() {
-  const [items, setItems] = useState<Orcamento[]>([]);
-  const [hidratado, setHidratado] = useState(false);
-  const [catalogo, setCatalogo] = useState<ServicoItem[]>([]);
+  const [items, setItems] = useState<OrcamentoDB[]>([]);
+  const [catalogo, setCatalogo] = useState<ServicoDB[]>([]);
   const [cliente, setCliente] = useState("");
   const [celular, setCelular] = useState("");
-  const [moto, setMoto] = useState("");
   const [obs, setObs] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento | "">("");
-
   const [itens, setItens] = useState<OrcamentoItem[]>([]);
   const [novoDesc, setNovoDesc] = useState("");
   const [novoValor, setNovoValor] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    setItems(loadOrcamentos());
-    setCatalogo(loadCatalogo());
-    setHidratado(true);
-  }, []);
-  useEffect(() => { if (hidratado) saveOrcamentos(items); }, [items, hidratado]);
+  async function reload() {
+    setItems(await orcDB.list());
+    setCatalogo(await catDB.list());
+  }
+  useEffect(() => { reload(); }, []);
 
   const grupos = useMemo(() => {
-    const g: Record<string, ServicoItem[]> = {};
+    const g: Record<string, ServicoDB[]> = {};
     for (const s of catalogo) (g[s.categoria] ||= []).push(s);
     return g;
   }, [catalogo]);
 
-  function adicionarDoCatalogo(s: ServicoItem) {
+  function adicionarDoCatalogo(s: ServicoDB) {
     setItens((p) => [...p, { descricao: s.nome, valor: s.preco }]);
   }
   function adicionarManual() {
@@ -46,39 +41,33 @@ export function OrcamentosTab() {
     setItens((p) => [...p, { descricao: novoDesc, valor }]);
     setNovoDesc(""); setNovoValor("");
   }
-  function removerItem(idx: number) {
-    setItens((p) => p.filter((_, i) => i !== idx));
-  }
-  function reset() {
-    setCliente(""); setCelular(""); setMoto(""); setObs(""); setItens([]); setFormaPagamento("");
-  }
+  function removerItem(idx: number) { setItens((p) => p.filter((_, i) => i !== idx)); }
+  function reset() { setCliente(""); setCelular(""); setObs(""); setItens([]); setFormaPagamento(""); }
 
-  function salvar(e: FormEvent) {
+  async function salvar(e: FormEvent) {
     e.preventDefault();
     if (!cliente || !itens.length) return;
-    const novo: Orcamento = {
-      id: crypto.randomUUID(),
-      cliente, celular, moto, observacoes: obs, itens,
-      formaPagamento: formaPagamento || undefined,
-      status: "rascunho", criadoEm: Date.now(),
-
-    };
-    setItems((p) => [novo, ...p]);
-    reset();
+    setBusy(true);
+    try {
+      const total = itens.reduce((s, i) => s + (i.valor || 0), 0);
+      await orcDB.create({
+        cliente, celular, itens, total,
+        formaPagamento: formaPagamento || undefined,
+        status: "rascunho", observacoes: obs || undefined,
+      });
+      reset(); await reload();
+    } catch (err) { alert((err as Error).message); }
+    finally { setBusy(false); }
   }
 
-  function setStatus(id: string, status: OrcamentoStatus) {
-    setItems((p) => p.map((o) => o.id === id ? { ...o, status } : o));
-  }
-
-  function remove(id: string) {
+  async function setStatus(id: string, status: OrcStatus) { await orcDB.setStatus(id, status); reload(); }
+  async function remove(id: string) {
     if (!confirm("Remover orçamento?")) return;
-    setItems((p) => p.filter((o) => o.id !== id));
+    await orcDB.remove(id); reload();
   }
-
-  function enviarWhats(o: Orcamento) {
+  async function enviarWhats(o: OrcamentoDB) {
     if (!o.celular) { alert("Cliente sem celular"); return; }
-    setStatus(o.id, "enviado");
+    await setStatus(o.id, "enviado");
     window.open(whatsappLink(o.celular, orcamentoMensagem(o)), "_blank");
   }
 
@@ -92,11 +81,11 @@ export function OrcamentosTab() {
             <Field label="Cliente" value={cliente} onChange={setCliente} placeholder="Nome" />
             <Field label="Celular" value={celular} onChange={setCelular} placeholder="(11) 99999-0000" />
           </div>
-          <Field label="Moto" value={moto} onChange={setMoto} placeholder="Honda CG 160 - ABC1D23" />
 
           <div className="rounded-md border border-border p-3">
             <p className="text-xs font-medium text-muted-foreground mb-2">Adicionar do catálogo</p>
             <div className="max-h-44 overflow-auto space-y-2">
+              {catalogo.length === 0 && <p className="text-xs text-muted-foreground">Cadastre serviços no Catálogo.</p>}
               {Object.entries(grupos).map(([cat, lista]) => (
                 <div key={cat}>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
@@ -118,11 +107,9 @@ export function OrcamentosTab() {
           <div className="rounded-md border border-border p-3">
             <p className="text-xs font-medium text-muted-foreground mb-2">Item personalizado</p>
             <div className="flex gap-2">
-              <input value={novoDesc} onChange={(e) => setNovoDesc(e.target.value)}
-                placeholder="Descrição"
+              <input value={novoDesc} onChange={(e) => setNovoDesc(e.target.value)} placeholder="Descrição"
                 className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-              <input value={novoValor} onChange={(e) => setNovoValor(e.target.value)}
-                placeholder="0,00"
+              <input value={novoValor} onChange={(e) => setNovoValor(e.target.value)} placeholder="0,00"
                 className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
               <button type="button" onClick={adicionarManual}
                 className="rounded-md bg-secondary px-3 py-2 text-sm font-medium hover:bg-muted">+</button>
@@ -148,13 +135,10 @@ export function OrcamentosTab() {
 
           <div>
             <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
-            <select value={formaPagamento}
-              onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento | "")}
+            <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento | "")}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
               <option value="">Selecione…</option>
-              {formasPagamento.map((f) => (
-                <option key={f.value} value={f.value}>{f.label}</option>
-              ))}
+              {formasPagamento.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
           </div>
 
@@ -164,9 +148,8 @@ export function OrcamentosTab() {
               className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
           </div>
 
-
-          <button className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-            Salvar Orçamento
+          <button disabled={busy} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            {busy ? "..." : "Salvar Orçamento"}
           </button>
         </form>
       </Panel>
@@ -177,7 +160,7 @@ export function OrcamentosTab() {
           <Empty>Nenhum orçamento criado</Empty>
         ) : (
           items.map((o) => {
-            const tone: Record<OrcamentoStatus, "muted" | "queue" | "ready" | "destructive"> = {
+            const tone: Record<OrcStatus, "muted" | "queue" | "ready" | "destructive"> = {
               rascunho: "muted", enviado: "queue", aprovado: "ready", recusado: "destructive",
             };
             return (
@@ -185,12 +168,12 @@ export function OrcamentosTab() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h4 className="font-display font-semibold text-sm">{o.cliente}</h4>
-                    {o.moto && <p className="text-xs text-muted-foreground">{o.moto}</p>}
+                    {o.celular && <p className="text-xs text-muted-foreground">{o.celular}</p>}
                   </div>
-                  <Pill tone={tone[o.status]}>{orcamentoStatusLabel[o.status]}</Pill>
+                  <Pill tone={tone[o.status]}>{orcStatusLabel[o.status]}</Pill>
                 </div>
                 <ul className="mt-2 text-xs space-y-0.5">
-                  {o.itens.map((i, idx) => (
+                  {o.itens.map((i: OrcamentoItem, idx: number) => (
                     <li key={idx} className="flex justify-between">
                       <span className="truncate">• {i.descricao}</span>
                       <span className="tabular-nums text-muted-foreground">{formatBRL(i.valor)}</span>
@@ -198,7 +181,7 @@ export function OrcamentosTab() {
                   ))}
                 </ul>
                 <div className="mt-2 flex justify-between text-sm font-semibold">
-                  <span>Total</span><span className="tabular-nums">{formatBRL(orcamentoTotal(o))}</span>
+                  <span>Total</span><span className="tabular-nums">{formatBRL(o.total)}</span>
                 </div>
                 {o.formaPagamento && (
                   <p className="mt-1 text-xs text-muted-foreground">Pagamento: {formaPagamentoLabel[o.formaPagamento]}</p>
@@ -210,15 +193,12 @@ export function OrcamentosTab() {
                     Enviar via WhatsApp
                   </button>
                   {o.status !== "aprovado" && (
-                    <button onClick={() => setStatus(o.id, "aprovado")}
-                      className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">Aprovar</button>
+                    <button onClick={() => setStatus(o.id, "aprovado")} className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">Aprovar</button>
                   )}
                   {o.status !== "recusado" && (
-                    <button onClick={() => setStatus(o.id, "recusado")}
-                      className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">Recusar</button>
+                    <button onClick={() => setStatus(o.id, "recusado")} className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">Recusar</button>
                   )}
-                  <button onClick={() => remove(o.id)}
-                    className="rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted">×</button>
+                  <button onClick={() => remove(o.id)} className="rounded-md border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted">×</button>
                 </div>
               </article>
             );

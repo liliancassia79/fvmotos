@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  loadOS, saveOS, nextStatus, statusLabel, statusOrder,
+  nextStatus, statusLabel, statusOrder,
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
+import { osDB, catDB, type ServicoDB } from "@/lib/db";
 import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
-import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
 import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
 import { useInstallPrompt } from "@/lib/install-pwa";
+import { signOut } from "@/hooks/use-session";
+import { AuthGate } from "@/components/AuthGate";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
 import { OrcamentosTab } from "@/components/dashboard/OrcamentosTab";
 import { AgendamentosTab } from "@/components/dashboard/AgendamentosTab";
@@ -19,7 +21,7 @@ import { FotosUpload } from "@/components/dashboard/FotosUpload";
 import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
-  component: AppShell,
+  component: () => <AuthGate><AppShell /></AuthGate>,
   head: () => ({
     meta: [
       { title: "FV Motos · Gestão da Oficina" },

@@ -14,7 +14,195 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agendamentos: {
+        Row: {
+          celular: string | null
+          cliente: string
+          confirmado: boolean
+          created_at: string
+          data_hora: string
+          id: string
+          observacoes: string | null
+          servico: string | null
+          updated_at: string
+        }
+        Insert: {
+          celular?: string | null
+          cliente: string
+          confirmado?: boolean
+          created_at?: string
+          data_hora: string
+          id?: string
+          observacoes?: string | null
+          servico?: string | null
+          updated_at?: string
+        }
+        Update: {
+          celular?: string | null
+          cliente?: string
+          confirmado?: boolean
+          created_at?: string
+          data_hora?: string
+          id?: string
+          observacoes?: string | null
+          servico?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          celular: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          celular?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          celular?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      orcamentos: {
+        Row: {
+          celular: string | null
+          cliente: string
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          itens: Json
+          observacoes: string | null
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          celular?: string | null
+          cliente: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          itens?: Json
+          observacoes?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          celular?: string | null
+          cliente?: string
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          itens?: Json
+          observacoes?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ordens_servico: {
+        Row: {
+          atualizado_em: string | null
+          celular: string | null
+          cliente: string
+          created_at: string
+          criado_em: string
+          defeito: string | null
+          finalizado_em: string | null
+          forma_pagamento: string | null
+          fotos: string[]
+          id: string
+          modelo: string
+          observacoes: string | null
+          placa: string
+          status: string
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          celular?: string | null
+          cliente: string
+          created_at?: string
+          criado_em?: string
+          defeito?: string | null
+          finalizado_em?: string | null
+          forma_pagamento?: string | null
+          fotos?: string[]
+          id?: string
+          modelo: string
+          observacoes?: string | null
+          placa: string
+          status?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          celular?: string | null
+          cliente?: string
+          created_at?: string
+          criado_em?: string
+          defeito?: string | null
+          finalizado_em?: string | null
+          forma_pagamento?: string | null
+          fotos?: string[]
+          id?: string
+          modelo?: string
+          observacoes?: string | null
+          placa?: string
+          status?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      servicos_catalogo: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          id: string
+          nome: string
+          preco: number
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          preco?: number
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          preco?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

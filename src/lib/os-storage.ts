@@ -19,24 +19,6 @@ export interface OrdemServico {
   finalizadoEm?: number;
 }
 
-
-const KEY = "oficina-os-v1";
-
-export function loadOS(): OrdemServico[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as OrdemServico[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveOS(items: OrdemServico[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(items));
-}
-
 export const statusOrder: OSStatus[] = ["fila", "consertando", "pronta"];
 
 export const statusLabel: Record<OSStatus, string> = {
