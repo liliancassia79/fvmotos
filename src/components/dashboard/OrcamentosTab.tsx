@@ -61,6 +61,7 @@ export function OrcamentosTab() {
   }
 
   async function setStatus(id: string, status: OrcStatus) { await orcDB.setStatus(id, status); reload(); }
+  async function togglePago(o: OrcamentoDB) { await orcDB.setPago(o.id, !o.pago); reload(); }
   async function remove(id: string) {
     if (!confirm("Remover orçamento?")) return;
     await orcDB.remove(id); reload();
