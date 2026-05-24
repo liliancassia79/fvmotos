@@ -252,6 +252,12 @@ function OSView() {
                   ))}
                 </select>
               </div>
+              <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm cursor-pointer hover:bg-muted">
+                <input type="checkbox" checked={form.pago}
+                  onChange={(e) => setForm({ ...form, pago: e.target.checked })}
+                  className="h-4 w-4 accent-primary" />
+                <span>Cliente já pagou</span>
+              </label>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
                 <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
