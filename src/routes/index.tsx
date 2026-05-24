@@ -318,7 +318,8 @@ function OSView() {
           <div className="grid gap-5 md:grid-cols-3">
             {statusOrder.map((s) => (
               <Column key={s} status={s} items={grouped[s]}
-                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
+                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar}
+                onTogglePago={async (id, pago) => { await osDB.update(id, { pago, atualizadoEm: Date.now() }); refresh(); }} />
             ))}
           </div>
         </section>
