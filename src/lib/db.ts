@@ -12,6 +12,7 @@ function fromOS(r: any): OrdemServico {
     observacoes: r.observacoes ?? undefined,
     fotos: r.fotos ?? [],
     status: r.status as OSStatus,
+    pago: !!r.pago,
     criadoEm: new Date(r.criado_em).getTime(),
     atualizadoEm: r.atualizado_em ? new Date(r.atualizado_em).getTime() : undefined,
     finalizadoEm: r.finalizado_em ? new Date(r.finalizado_em).getTime() : undefined,
@@ -24,6 +25,7 @@ function toOS(o: Partial<OrdemServico>) {
     forma_pagamento: o.formaPagamento ?? null, observacoes: o.observacoes ?? null,
     fotos: o.fotos ?? [], status: o.status ?? "fila",
   };
+  if (typeof o.pago === "boolean") row.pago = o.pago;
   if (o.atualizadoEm) row.atualizado_em = new Date(o.atualizadoEm).toISOString();
   if (o.finalizadoEm) row.finalizado_em = new Date(o.finalizadoEm).toISOString();
   return row;
