@@ -79,6 +79,10 @@ function AppShell() {
               ↓ Instalar App
             </button>
           )}
+          <button onClick={() => signOut()}
+            className="w-full rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            Sair
+          </button>
         </div>
       </aside>
 
