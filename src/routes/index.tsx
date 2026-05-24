@@ -394,6 +394,17 @@ function Card({
         )}
       </div>
 
+        {it.valor != null && (
+          <span className={`shrink-0 text-xs font-medium tabular-nums ${it.pago ? "text-emerald-600" : ""}`}>{formatBRL(it.valor)}</span>
+        )}
+      </div>
+
+      <div className="mt-1 flex items-center gap-2">
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${it.pago ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"}`}>
+          {it.pago ? "● Pago" : "○ Não pago"}
+        </span>
+      </div>
+
       <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
         <span className="truncate">{it.cliente}</span>
         <span className="shrink-0 ml-2">{relativeTime(it.criadoEm)}</span>
