@@ -4,7 +4,19 @@ import { agendamentoMensagemConfirmacao, formatDataHora } from "@/lib/oficina-st
 import { whatsappLink } from "@/lib/os-storage";
 import { Field, Panel, Empty, Pill } from "./ui-bits";
 
-const empty = { cliente: "", celular: "", servico: "", data: "", observacoes: "" };
+const empty = { cliente: "", celular: "", servico: "", servicoOutro: "", data: "", observacoes: "" };
+
+const servicosComuns = [
+  "Troca de óleo",
+  "Revisão geral",
+  "Troca de pastilha de freio",
+  "Troca de pneu",
+  "Regulagem de freio",
+  "Lavagem completa",
+  "Troca de corrente e coroa",
+  "Diagnóstico elétrico",
+  "Injeção eletrônica",
+];
 
 export function AgendamentosTab() {
   const [items, setItems] = useState<AgendamentoDB[]>([]);
