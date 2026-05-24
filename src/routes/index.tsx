@@ -289,16 +289,17 @@ function OSView() {
               <FotosUpload
                 fotos={form.fotos}
                 osId={fotosId}
-                onChange={(fotos) => {
+                onChange={async (fotos) => {
                   setForm((f) => ({ ...f, fotos }));
                   if (editingId) {
-                    setItems((p) => p.map((it) => it.id === editingId ? { ...it, fotos, atualizadoEm: Date.now() } : it));
+                    await osDB.update(editingId, { fotos, atualizadoEm: Date.now() });
+                    refresh();
                   }
                 }}
               />
 
-              <button type="submit" className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-                {editingId ? "Salvar alterações" : "Cadastrar O.S."}
+              <button type="submit" disabled={saving} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar O.S."}
               </button>
             </form>
           </div>
