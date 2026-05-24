@@ -177,6 +177,7 @@ function OSView() {
       observacoes: it.observacoes ?? "",
       formaPagamento: it.formaPagamento ?? "",
       fotos: it.fotos ?? [],
+      pago: !!it.pago,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
