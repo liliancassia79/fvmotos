@@ -390,11 +390,6 @@ function Card({
           <p className="font-mono text-xs text-muted-foreground mt-0.5">{it.placa}</p>
         </button>
         {it.valor != null && (
-          <span className="shrink-0 text-xs font-medium tabular-nums">{formatBRL(it.valor)}</span>
-        )}
-      </div>
-
-        {it.valor != null && (
           <span className={`shrink-0 text-xs font-medium tabular-nums ${it.pago ? "text-emerald-600" : ""}`}>{formatBRL(it.valor)}</span>
         )}
       </div>
