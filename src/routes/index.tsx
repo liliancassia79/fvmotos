@@ -345,11 +345,12 @@ const statusStyles: Record<OSStatus, string> = {
 };
 
 function Column({
-  status, items, onAdvance, onBack, onRemove, onEdit,
+  status, items, onAdvance, onBack, onRemove, onEdit, onTogglePago,
 }: {
   status: OSStatus; items: OrdemServico[];
   onAdvance: (id: string) => void; onBack: (id: string) => void;
   onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
+  onTogglePago: (id: string, pago: boolean) => void;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card/50 p-4">
@@ -366,7 +367,7 @@ function Column({
         )}
         {items.map((it) => (
           <Card key={it.id} it={it} status={status}
-            onAdvance={onAdvance} onBack={onBack} onRemove={onRemove} onEdit={onEdit} />
+            onAdvance={onAdvance} onBack={onBack} onRemove={onRemove} onEdit={onEdit} onTogglePago={onTogglePago} />
         ))}
       </div>
     </div>
