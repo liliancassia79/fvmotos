@@ -17,6 +17,18 @@ export function useInstallPrompt() {
       window.navigator.standalone === true;
     setInstalled(standalone);
 
+    // Register minimal service worker (required for Android install prompt).
+    // Skip in iframes and on Lovable preview hosts to avoid cache issues.
+    try {
+      const inIframe = window.self !== window.top;
+      const host = window.location.hostname;
+      const isPreview = host.includes("id-preview--") || host.includes("lovableproject.com");
+      const allowSW = !inIframe && !isPreview;
+      if ("serviceWorker" in navigator && allowSW && window.location.protocol === "https:") {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
+    } catch {}
+
     const onBIP = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BIPEvent);
