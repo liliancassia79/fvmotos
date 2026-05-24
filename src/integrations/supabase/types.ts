@@ -182,6 +182,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamentos: {
+        Row: {
+          cliente: string
+          created_at: string
+          descricao: string | null
+          forma_pagamento: string | null
+          id: string
+          origem: string
+          origem_id: string
+          pago_em: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          descricao?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          origem: string
+          origem_id: string
+          pago_em?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          descricao?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          origem?: string
+          origem_id?: string
+          pago_em?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       servicos_catalogo: {
         Row: {
           categoria: string | null

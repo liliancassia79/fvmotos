@@ -1,78 +1,114 @@
 import { useEffect, useMemo, useState } from "react";
-import { osDB } from "@/lib/db";
-import { orcDB, type OrcamentoDB } from "@/lib/db";
-import { formatBRL, statusLabel, type OrdemServico } from "@/lib/os-storage";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBRL } from "@/lib/os-storage";
 import { Empty } from "./ui-bits";
 
+type Pagamento = {
+  id: string;
+  origem: "os" | "orcamento";
+  origem_id: string;
+  cliente: string;
+  descricao: string | null;
+  valor: number;
+  forma_pagamento: string | null;
+  status: string;
+  pago_em: string;
+};
+
 export function FaturamentoTab() {
-  const [os, setOS] = useState<OrdemServico[]>([]);
-  const [orcs, setOrcs] = useState<OrcamentoDB[]>([]);
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    osDB.list().then(setOS);
-    orcDB.list().then(setOrcs);
+    const load = async () => {
+      const { data } = await supabase
+        .from("pagamentos")
+        .select("*")
+        .order("pago_em", { ascending: false });
+      setPagamentos((data ?? []) as Pagamento[]);
+      setLoading(false);
+    };
+    load();
+
+    const channel = supabase
+      .channel("pagamentos-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pagamentos" }, load)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const stats = useMemo(() => {
-    const pagasOS = os.filter((o) => o.pago);
-    const pagosOrc = orcs.filter((o) => o.pago);
-    const faturadoOS = pagasOS.reduce((s, o) => s + (o.valor ?? 0), 0);
-    const faturadoOrc = pagosOrc.reduce((s, o) => s + o.total, 0);
-    const faturado = faturadoOS + faturadoOrc;
-    const aberto =
-      os.filter((o) => !o.pago).reduce((s, o) => s + (o.valor ?? 0), 0) +
-      orcs.filter((o) => !o.pago && o.status !== "recusado").reduce((s, o) => s + o.total, 0);
-    const aprovados = orcs.filter((o) => o.status === "aprovado" && !o.pago);
-    const previsto = aprovados.reduce((s, o) => s + o.total, 0);
+    const faturado = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
     const agora = new Date();
-    const mes = agora.getMonth(), ano = agora.getFullYear();
-    const noMes = (ts: number) => {
-      const d = new Date(ts);
+    const mes = agora.getMonth();
+    const ano = agora.getFullYear();
+    const noMes = pagamentos.filter((p) => {
+      const d = new Date(p.pago_em);
       return d.getMonth() === mes && d.getFullYear() === ano;
-    };
-    const mesAtual =
-      pagasOS.filter((o) => noMes(o.finalizadoEm ?? o.atualizadoEm ?? o.criadoEm))
-        .reduce((s, o) => s + (o.valor ?? 0), 0) +
-      pagosOrc.filter((o) => noMes(o.criadoEm)).reduce((s, o) => s + o.total, 0);
-    const totalPagos = pagasOS.length + pagosOrc.length;
-    const ticketMedio = totalPagos ? faturado / totalPagos : 0;
-    return { faturado, aberto, previsto, mesAtual, ticketMedio, prontas: pagasOS };
-  }, [os, orcs]);
+    });
+    const mesAtual = noMes.reduce((s, p) => s + Number(p.valor || 0), 0);
+    const ticketMedio = pagamentos.length ? faturado / pagamentos.length : 0;
+    return { faturado, mesAtual, ticketMedio, qtdMes: noMes.length };
+  }, [pagamentos]);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3">
         <Card label="Faturado total" value={formatBRL(stats.faturado)} />
         <Card label="Faturado no mês" value={formatBRL(stats.mesAtual)} highlight />
-        <Card label="Em aberto" value={formatBRL(stats.aberto)} />
-        <Card label="Previsto (orçamentos aprovados)" value={formatBRL(stats.previsto)} />
+        <Card label="Ticket médio" value={formatBRL(stats.ticketMedio)} />
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5">
-        <h3 className="text-sm font-semibold mb-3">Ticket médio: <span className="tabular-nums">{formatBRL(stats.ticketMedio)}</span></h3>
-        {stats.prontas.length === 0 ? (
-          <Empty>Nenhuma O.S. finalizada ainda</Empty>
+        <h3 className="text-sm font-semibold mb-3">
+          Histórico de pagamentos{" "}
+          <span className="text-xs font-normal text-muted-foreground">
+            ({pagamentos.length} transaç{pagamentos.length === 1 ? "ão" : "ões"})
+          </span>
+        </h3>
+        {loading ? (
+          <Empty>Carregando…</Empty>
+        ) : pagamentos.length === 0 ? (
+          <Empty>Nenhum pagamento registrado ainda</Empty>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-muted-foreground">
-                <th className="py-2 font-medium">Cliente</th>
-                <th className="py-2 font-medium">Moto</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium text-right">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.prontas.map((o) => (
-                <tr key={o.id} className="border-t border-border">
-                  <td className="py-2">{o.cliente}</td>
-                  <td className="py-2 text-muted-foreground">{o.modelo} · {o.placa}</td>
-                  <td className="py-2 text-xs">{statusLabel[o.status]}</td>
-                  <td className="py-2 text-right tabular-nums font-medium">{formatBRL(o.valor)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-2 font-medium">Data</th>
+                  <th className="py-2 font-medium">Cliente</th>
+                  <th className="py-2 font-medium">Descrição</th>
+                  <th className="py-2 font-medium">Origem</th>
+                  <th className="py-2 font-medium">Pagamento</th>
+                  <th className="py-2 font-medium text-right">Valor</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pagamentos.map((p) => (
+                  <tr key={p.id} className="border-t border-border">
+                    <td className="py-2 text-xs tabular-nums">
+                      {new Date(p.pago_em).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="py-2">{p.cliente}</td>
+                    <td className="py-2 text-muted-foreground">{p.descricao ?? "—"}</td>
+                    <td className="py-2 text-xs">
+                      <span className="rounded bg-muted px-2 py-0.5">
+                        {p.origem === "os" ? "O.S." : "Orçamento"}
+                      </span>
+                    </td>
+                    <td className="py-2 text-xs text-muted-foreground">
+                      {p.forma_pagamento ?? "—"}
+                    </td>
+                    <td className="py-2 text-right tabular-nums font-medium">
+                      {formatBRL(Number(p.valor))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
