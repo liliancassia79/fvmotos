@@ -9,37 +9,116 @@ import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { loadCatalogo, type ServicoItem } from "@/lib/catalog";
 import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
 import { useInstallPrompt } from "@/lib/install-pwa";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ClientesTab } from "@/components/dashboard/ClientesTab";
 import { OrcamentosTab } from "@/components/dashboard/OrcamentosTab";
 import { AgendamentosTab } from "@/components/dashboard/AgendamentosTab";
 import { FaturamentoTab } from "@/components/dashboard/FaturamentoTab";
 import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
+import { DashboardTab } from "@/components/dashboard/DashboardTab";
+import { FotosUpload } from "@/components/dashboard/FotosUpload";
 import logo from "@/assets/fv-motos-logo.png";
 
-
 export const Route = createFileRoute("/")({
-  component: Dashboard,
+  component: AppShell,
   head: () => ({
     meta: [
-      { title: "FV Motos · Ordens de Serviço" },
-      { name: "description", content: "Gerencie as O.S. da FV Motos Oficina Mecânica." },
+      { title: "FV Motos · Gestão da Oficina" },
+      { name: "description", content: "Gerencie ordens de serviço, clientes, orçamentos e agenda da FV Motos." },
     ],
   }),
 });
 
-const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento };
+type View = "dashboard" | "os" | "clientes" | "orcamentos" | "agenda" | "faturamento" | "catalogo";
 
-function Dashboard() {
+const menu: { id: View; label: string; icon: string }[] = [
+  { id: "dashboard", label: "Dashboard", icon: "▦" },
+  { id: "os", label: "Ordens de Serviço", icon: "🔧" },
+  { id: "clientes", label: "Clientes", icon: "👤" },
+  { id: "orcamentos", label: "Orçamentos", icon: "💬" },
+  { id: "agenda", label: "Agenda", icon: "📅" },
+  { id: "faturamento", label: "Faturamento", icon: "💰" },
+  { id: "catalogo", label: "Catálogo", icon: "📋" },
+];
+
+function AppShell() {
+  const [view, setView] = useState<View>("dashboard");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { install, installed, canInstall } = useInstallPrompt();
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className={`${mobileOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:sticky top-0 z-40 h-screen w-60 shrink-0 border-r border-border bg-card flex flex-col transition-transform`}>
+        <div className="px-4 py-5 border-b border-border flex items-center gap-3">
+          <img src={logo} alt="FV Motos" className="h-10 w-10 object-contain" />
+          <div>
+            <p className="font-display font-bold leading-none">FV MOTOS</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-primary mt-1">Oficina</p>
+          </div>
+        </div>
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {menu.map((m) => (
+            <button key={m.id} onClick={() => { setView(m.id); setMobileOpen(false); }}
+              className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
+                view === m.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}>
+              <span className="text-base">{m.icon}</span>
+              <span>{m.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="p-3 border-t border-border space-y-2">
+          {!installed && (
+            <button onClick={install}
+              className="w-full rounded-md bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold hover:opacity-90"
+              title={canInstall ? "Instalar como aplicativo" : "Como instalar"}>
+              ↓ Instalar App
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {mobileOpen && (
+        <button aria-label="Fechar menu" onClick={() => setMobileOpen(false)}
+          className="md:hidden fixed inset-0 z-30 bg-black/60" />
+      )}
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="md:hidden sticky top-0 z-20 border-b border-border bg-card px-4 py-3 flex items-center justify-between">
+          <button onClick={() => setMobileOpen(true)} className="rounded-md border border-border px-3 py-1.5 text-sm">☰ Menu</button>
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="" className="h-7 w-7 object-contain" />
+            <span className="font-display font-bold text-sm">FV MOTOS</span>
+          </div>
+        </header>
+
+        <main className="flex-1 px-4 md:px-8 py-6 max-w-7xl w-full mx-auto">
+          {view === "dashboard" && <DashboardTab />}
+          {view === "os" && <OSView />}
+          {view === "clientes" && <ClientesTab />}
+          {view === "orcamentos" && <OrcamentosTab />}
+          {view === "agenda" && <AgendamentosTab />}
+          {view === "faturamento" && <FaturamentoTab />}
+          {view === "catalogo" && <CatalogoTab />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento, fotos: [] as string[] };
+
+function OSView() {
   const [items, setItems] = useState<OrdemServico[]>([]);
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempId] = useState(() => crypto.randomUUID());
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
   const [hidratado, setHidratado] = useState(false);
   const [catalogo, setCatalogo] = useState<ServicoItem[]>([]);
-  const { install, installed, canInstall } = useInstallPrompt();
-
 
   useEffect(() => { setItems(loadOS()); setCatalogo(loadCatalogo()); setHidratado(true); }, []);
   useEffect(() => { if (hidratado) saveOS(items); }, [items, hidratado]);
@@ -59,8 +138,7 @@ function Dashboard() {
     return items.filter((i) => {
       if (filtroStatus !== "todos" && i.status !== filtroStatus) return false;
       if (!q) return true;
-      return [i.modelo, i.placa, i.cliente, i.celular, i.defeito]
-        .some((c) => c.toLowerCase().includes(q));
+      return [i.modelo, i.placa, i.cliente, i.celular, i.defeito].some((c) => c.toLowerCase().includes(q));
     });
   }, [items, busca, filtroStatus]);
 
@@ -69,13 +147,6 @@ function Dashboard() {
     for (const it of filtered) g[it.status].push(it);
     return g;
   }, [filtered]);
-
-  const stats = useMemo(() => ({
-    fila: items.filter((i) => i.status === "fila").length,
-    consertando: items.filter((i) => i.status === "consertando").length,
-    pronta: items.filter((i) => i.status === "pronta").length,
-    faturamento: items.filter((i) => i.status === "pronta").reduce((s, i) => s + (i.valor ?? 0), 0),
-  }), [items]);
 
   function resetForm() { setForm(empty); setEditingId(null); }
 
@@ -92,7 +163,7 @@ function Dashboard() {
         : it));
     } else {
       setItems((p) => [{
-        id: crypto.randomUUID(),
+        id: tempId,
         ...rest, valor, formaPagamento,
         status: "fila",
         criadoEm: Date.now(),
@@ -100,7 +171,6 @@ function Dashboard() {
     }
     resetForm();
   }
-
 
   function editar(it: OrdemServico) {
     setEditingId(it.id);
@@ -110,10 +180,10 @@ function Dashboard() {
       valor: it.valor != null ? it.valor.toFixed(2).replace(".", ",") : "",
       observacoes: it.observacoes ?? "",
       formaPagamento: it.formaPagamento ?? "",
+      fotos: it.fotos ?? [],
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
 
   function advance(id: string) {
     setItems((p) => p.map((it) => {
@@ -138,175 +208,117 @@ function Dashboard() {
     if (editingId === id) resetForm();
   }
 
-  function limparEntregues() {
-    const n = stats.pronta;
-    if (!n) return;
-    if (!confirm(`Arquivar ${n} O.S. entregue${n > 1 ? "s" : ""}?`)) return;
-    setItems((p) => p.filter((i) => i.status !== "pronta"));
-  }
+  const fotosId = editingId ?? tempId;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b-2 border-primary bg-foreground text-background">
-        <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="FV Motos" className="h-14 w-14 object-contain" />
-            <div>
-              <h1 className="text-lg font-display font-bold leading-none tracking-tight">FV MOTOS</h1>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-primary mt-1.5">Oficina Mecânica</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-2xl font-display font-bold">Ordens de Serviço</h2>
+          <p className="text-sm text-muted-foreground">Cadastre e acompanhe o fluxo de reparos</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => exportarCSV(items)} disabled={!items.length}
+            className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
+            Exportar CSV
+          </button>
+          <button onClick={() => window.print()} disabled={!items.length}
+            className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-40">
+            Imprimir
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        <section>
+          <div className="lg:sticky lg:top-6 rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold">{editingId ? "Editar O.S." : "Nova O.S."}</h3>
+              {editingId && (
+                <button onClick={resetForm} className="text-xs text-muted-foreground hover:text-foreground">cancelar</button>
+              )}
+            </div>
+            <form onSubmit={submit} className="mt-4 space-y-3">
+              <Field label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} placeholder="Honda CG 160" />
+              <Field label="Placa" value={form.placa} onChange={(v) => setForm({ ...form, placa: v.toUpperCase() })} placeholder="ABC1D23" />
+              <Field label="Cliente" value={form.cliente} onChange={(v) => setForm({ ...form, cliente: v })} placeholder="Nome completo" />
+              <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
+              <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
+                <select value={form.formaPagamento}
+                  onChange={(e) => setForm({ ...form, formaPagamento: e.target.value as FormaPagamento | "" })}
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+                  <option value="">Selecione…</option>
+                  {formasPagamento.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
+                <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
+                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+                  <option value="">+ adicionar serviço…</option>
+                  {catalogo.map((s) => (
+                    <option key={s.id} value={s.id}>{s.nome} — {formatBRL(s.preco)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Defeito / Serviços</label>
+                <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
+                  placeholder="Descreva o problema" rows={3}
+                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Observações internas</label>
+                <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                  placeholder="Peças usadas, notas..." rows={2}
+                  className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+              </div>
+
+              <FotosUpload
+                fotos={form.fotos}
+                osId={fotosId}
+                onChange={(fotos) => {
+                  setForm((f) => ({ ...f, fotos }));
+                  if (editingId) {
+                    setItems((p) => p.map((it) => it.id === editingId ? { ...it, fotos, atualizadoEm: Date.now() } : it));
+                  }
+                }}
+              />
+
+              <button type="submit" className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+                {editingId ? "Salvar alterações" : "Cadastrar O.S."}
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <section className="space-y-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <input value={busca} onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por placa, cliente, modelo..."
+              className="flex-1 min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            <div className="flex gap-1 rounded-md border border-border bg-card p-1">
+              {(["todos", ...statusOrder] as const).map((s) => (
+                <button key={s} onClick={() => setFiltroStatus(s)}
+                  className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${filtroStatus === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  {s === "todos" ? "Todos" : statusLabel[s]}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            {!installed && (
-              <button onClick={install}
-                className="rounded-md bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold hover:opacity-90"
-                title={canInstall ? "Instalar como aplicativo" : "Como instalar"}>
-                ↓ Instalar App
-              </button>
-            )}
-            <button onClick={() => exportarCSV(items)} disabled={!items.length}
-              className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
-              Exportar CSV
-            </button>
-            <button onClick={() => window.print()} disabled={!items.length}
-              className="rounded-md border border-background/20 bg-background/10 px-3 py-2 text-xs font-medium hover:bg-background/20 disabled:opacity-40">
-              Imprimir
-            </button>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {statusOrder.map((s) => (
+              <Column key={s} status={s} items={grouped[s]}
+                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
+            ))}
           </div>
-
-        </div>
-      </header>
-
-      <div className="bg-card border-b border-border">
-        <div className="mx-auto max-w-7xl px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Na Fila" value={stats.fila} accent="bg-status-queue text-status-queue-foreground" />
-          <Stat label="Consertando" value={stats.consertando} accent="bg-status-fixing text-status-fixing-foreground" />
-          <Stat label="Prontas" value={stats.pronta} accent="bg-status-ready text-status-ready-foreground" />
-          <Stat label="Faturamento (prontas)" value={formatBRL(stats.faturamento)} />
-        </div>
+        </section>
       </div>
-
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        <Tabs defaultValue="os" className="w-full">
-          <TabsList className="mb-6 flex flex-wrap h-auto bg-card border border-border p-1">
-            <TabsTrigger value="os">Ordens de Serviço</TabsTrigger>
-            <TabsTrigger value="clientes">Clientes</TabsTrigger>
-            <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
-            <TabsTrigger value="agenda">Agenda</TabsTrigger>
-            <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
-            <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="os" className="grid gap-8 lg:grid-cols-[340px_1fr]">
-            <section>
-              <div className="lg:sticky lg:top-6 rounded-xl border border-border bg-card p-5">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold">{editingId ? "Editar O.S." : "Nova O.S."}</h2>
-                  {editingId && (
-                    <button onClick={resetForm} className="text-xs text-muted-foreground hover:text-foreground">cancelar</button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {editingId ? "Atualize os dados da moto" : "Cadastre uma moto rapidamente"}
-                </p>
-                <form onSubmit={submit} className="mt-5 space-y-3">
-                  <Field label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} placeholder="Honda CG 160" />
-                  <Field label="Placa" value={form.placa} onChange={(v) => setForm({ ...form, placa: v.toUpperCase() })} placeholder="ABC1D23" />
-                  <Field label="Cliente" value={form.cliente} onChange={(v) => setForm({ ...form, cliente: v })} placeholder="Nome completo" />
-                  <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
-                  <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>
-                    <select value={form.formaPagamento}
-                      onChange={(e) => setForm({ ...form, formaPagamento: e.target.value as FormaPagamento | "" })}
-                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
-                      <option value="">Selecione…</option>
-                      {formasPagamento.map((f) => (
-                        <option key={f.value} value={f.value}>{f.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
-                    <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
-                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
-                      <option value="">+ adicionar serviço…</option>
-                      {catalogo.map((s) => (
-                        <option key={s.id} value={s.id}>{s.nome} — {formatBRL(s.preco)}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Defeito / Serviços</label>
-                    <textarea value={form.defeito} onChange={(e) => setForm({ ...form, defeito: e.target.value })}
-                      placeholder="Descreva o problema" rows={3}
-                      className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">Observações internas</label>
-                    <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                      placeholder="Peças usadas, notas..." rows={2}
-                      className="mt-1 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                  <button type="submit" className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-                    {editingId ? "Salvar alterações" : "Cadastrar O.S."}
-                  </button>
-                </form>
-              </div>
-            </section>
-
-            <section className="space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  value={busca} onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar por placa, cliente, modelo..."
-                  className="flex-1 min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                />
-                <div className="flex gap-1 rounded-md border border-border bg-card p-1">
-                  {(["todos", ...statusOrder] as const).map((s) => (
-                    <button key={s} onClick={() => setFiltroStatus(s)}
-                      className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${filtroStatus === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                      {s === "todos" ? "Todos" : statusLabel[s]}
-                    </button>
-                  ))}
-                </div>
-                {stats.pronta > 0 && (
-                  <button onClick={limparEntregues}
-                    className="rounded-md border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    Arquivar entregues
-                  </button>
-                )}
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-3">
-                {statusOrder.map((s) => (
-                  <Column key={s} status={s} items={grouped[s]}
-                    onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
-                ))}
-              </div>
-            </section>
-          </TabsContent>
-
-          <TabsContent value="clientes"><ClientesTab /></TabsContent>
-          <TabsContent value="orcamentos"><OrcamentosTab /></TabsContent>
-          <TabsContent value="agenda"><AgendamentosTab /></TabsContent>
-          <TabsContent value="faturamento"><FaturamentoTab /></TabsContent>
-          <TabsContent value="catalogo"><CatalogoTab /></TabsContent>
-        </Tabs>
-      </main>
-    </div>
-  );
-}
-
-function Stat({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3">
-      <div className="flex items-center gap-2">
-        {accent && <span className={`inline-block h-2 w-2 rounded-full ${accent}`} />}
-        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</span>
-      </div>
-      <p className="mt-1 font-display text-2xl font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -330,12 +342,9 @@ const statusStyles: Record<OSStatus, string> = {
 function Column({
   status, items, onAdvance, onBack, onRemove, onEdit,
 }: {
-  status: OSStatus;
-  items: OrdemServico[];
-  onAdvance: (id: string) => void;
-  onBack: (id: string) => void;
-  onRemove: (id: string) => void;
-  onEdit: (it: OrdemServico) => void;
+  status: OSStatus; items: OrdemServico[];
+  onAdvance: (id: string) => void; onBack: (id: string) => void;
+  onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card/50 p-4">
@@ -348,9 +357,7 @@ function Column({
       </div>
       <div className="flex-1 space-y-3 min-h-32">
         {items.length === 0 && (
-          <p className="text-xs text-muted-foreground/70 text-center py-8 border border-dashed border-border rounded-lg">
-            Vazio
-          </p>
+          <p className="text-xs text-muted-foreground/70 text-center py-8 border border-dashed border-border rounded-lg">Vazio</p>
         )}
         {items.map((it) => (
           <Card key={it.id} it={it} status={status}
@@ -369,7 +376,6 @@ function Card({
   onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
 }) {
   const [open, setOpen] = useState(false);
-
   const msgPronta = `Olá ${it.cliente}, sua moto ${it.modelo} (${it.placa}) está pronta para retirada${it.valor ? `. Valor: ${formatBRL(it.valor)}` : ""}.`;
 
   return (
@@ -389,13 +395,26 @@ function Card({
         <span className="shrink-0 ml-2">{relativeTime(it.criadoEm)}</span>
       </div>
 
+      {it.fotos && it.fotos.length > 0 && (
+        <div className="mt-2 flex gap-1 overflow-x-auto">
+          {it.fotos.slice(0, 4).map((url) => (
+            <a key={url} href={url} target="_blank" rel="noreferrer" className="shrink-0">
+              <img src={url} alt="" className="h-12 w-12 rounded object-cover border border-border" />
+            </a>
+          ))}
+          {it.fotos.length > 4 && (
+            <span className="shrink-0 h-12 w-12 rounded border border-border bg-muted flex items-center justify-center text-xs">+{it.fotos.length - 4}</span>
+          )}
+        </div>
+      )}
+
       {open && (
         <div className="mt-3 space-y-2 text-xs border-t border-border pt-3">
           {it.celular && <p><span className="text-muted-foreground">Tel:</span> {it.celular}</p>}
           {it.defeito && (
             <div>
               <p className="text-muted-foreground mb-1">Defeito:</p>
-              <p className="bg-muted rounded-md p-2 leading-relaxed">{it.defeito}</p>
+              <p className="bg-muted rounded-md p-2 leading-relaxed whitespace-pre-line">{it.defeito}</p>
             </div>
           )}
           {it.observacoes && (
