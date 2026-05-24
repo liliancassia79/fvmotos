@@ -89,6 +89,7 @@ export type Database = {
           id: string
           itens: Json
           observacoes: string | null
+          pago: boolean
           status: string
           total: number
           updated_at: string
@@ -101,6 +102,7 @@ export type Database = {
           id?: string
           itens?: Json
           observacoes?: string | null
+          pago?: boolean
           status?: string
           total?: number
           updated_at?: string
@@ -113,6 +115,7 @@ export type Database = {
           id?: string
           itens?: Json
           observacoes?: string | null
+          pago?: boolean
           status?: string
           total?: number
           updated_at?: string
@@ -133,6 +136,7 @@ export type Database = {
           id: string
           modelo: string
           observacoes: string | null
+          pago: boolean
           placa: string
           status: string
           updated_at: string
@@ -151,6 +155,7 @@ export type Database = {
           id?: string
           modelo: string
           observacoes?: string | null
+          pago?: boolean
           placa: string
           status?: string
           updated_at?: string
@@ -169,6 +174,7 @@ export type Database = {
           id?: string
           modelo?: string
           observacoes?: string | null
+          pago?: boolean
           placa?: string
           status?: string
           updated_at?: string
