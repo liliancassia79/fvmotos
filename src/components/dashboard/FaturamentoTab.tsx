@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadOS, formatBRL, statusLabel, type OrdemServico } from "@/lib/os-storage";
-import { loadOrcamentos, orcamentoTotal, type Orcamento } from "@/lib/oficina-storage";
+import { osDB } from "@/lib/db";
+import { orcDB, type OrcamentoDB } from "@/lib/db";
+import { formatBRL, statusLabel, type OrdemServico } from "@/lib/os-storage";
 import { Empty } from "./ui-bits";
 
 export function FaturamentoTab() {
   const [os, setOS] = useState<OrdemServico[]>([]);
-  const [orcs, setOrcs] = useState<Orcamento[]>([]);
+  const [orcs, setOrcs] = useState<OrcamentoDB[]>([]);
 
   useEffect(() => {
-    setOS(loadOS());
-    setOrcs(loadOrcamentos());
+    osDB.list().then(setOS);
+    orcDB.list().then(setOrcs);
   }, []);
 
   const stats = useMemo(() => {
@@ -17,17 +18,14 @@ export function FaturamentoTab() {
     const faturado = prontas.reduce((s, o) => s + (o.valor ?? 0), 0);
     const aberto = os.filter((o) => o.status !== "pronta").reduce((s, o) => s + (o.valor ?? 0), 0);
     const aprovados = orcs.filter((o) => o.status === "aprovado");
-    const previsto = aprovados.reduce((s, o) => s + orcamentoTotal(o), 0);
-
+    const previsto = aprovados.reduce((s, o) => s + o.total, 0);
     const agora = new Date();
     const mes = agora.getMonth(), ano = agora.getFullYear();
     const mesAtual = prontas.filter((o) => {
       const d = new Date(o.finalizadoEm ?? o.criadoEm);
       return d.getMonth() === mes && d.getFullYear() === ano;
     }).reduce((s, o) => s + (o.valor ?? 0), 0);
-
     const ticketMedio = prontas.length ? faturado / prontas.length : 0;
-
     return { faturado, aberto, previsto, mesAtual, ticketMedio, prontas };
   }, [os, orcs]);
 

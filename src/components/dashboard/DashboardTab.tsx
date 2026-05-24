@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
-import { loadOS, formatBRL, statusLabel, type OrdemServico } from "@/lib/os-storage";
+import { osDB } from "@/lib/db";
+import { formatBRL, statusLabel, type OrdemServico } from "@/lib/os-storage";
 
 export function DashboardTab() {
   const [items, setItems] = useState<OrdemServico[]>([]);
-  useEffect(() => { setItems(loadOS()); }, []);
+  useEffect(() => { osDB.list().then(setItems); }, []);
 
   const fila = items.filter((i) => i.status === "fila");
   const consertando = items.filter((i) => i.status === "consertando");
   const pronta = items.filter((i) => i.status === "pronta");
-  const faturamentoTotal = items.filter((i) => i.status === "pronta").reduce((s, i) => s + (i.valor ?? 0), 0);
+  const faturamentoTotal = pronta.reduce((s, i) => s + (i.valor ?? 0), 0);
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const novasHoje = items.filter((i) => i.criadoEm >= hoje.getTime()).length;
   const ticketMedio = pronta.length ? faturamentoTotal / pronta.length : 0;
-
   const recentes = [...items].sort((a, b) => b.criadoEm - a.criadoEm).slice(0, 6);
 
   return (
@@ -27,9 +27,9 @@ export function DashboardTab() {
         <Big label="Consertando" value={consertando.length} hint="em execução" />
         <Big label="Prontas" value={pronta.length} hint="para entrega" />
         <Big label="Novas hoje" value={novasHoje} hint="entradas" />
-        <Big label="Faturamento" value={formatBRL(faturamentoTotal)} hint="ordens prontas" wide />
-        <Big label="Ticket médio" value={formatBRL(ticketMedio)} hint="por O.S. pronta" wide />
-        <Big label="Total O.S." value={items.length} hint="cadastradas" wide />
+        <Big label="Faturamento" value={formatBRL(faturamentoTotal)} hint="ordens prontas" />
+        <Big label="Ticket médio" value={formatBRL(ticketMedio)} hint="por O.S. pronta" />
+        <Big label="Total O.S." value={items.length} hint="cadastradas" />
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5">
@@ -54,9 +54,9 @@ export function DashboardTab() {
   );
 }
 
-function Big({ label, value, hint, wide }: { label: string; value: number | string; hint?: string; wide?: boolean }) {
+function Big({ label, value, hint }: { label: string; value: number | string; hint?: string }) {
   return (
-    <div className={`rounded-xl border border-border bg-card p-4 ${wide ? "" : ""}`}>
+    <div className="rounded-xl border border-border bg-card p-4">
       <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-2 font-display text-2xl font-bold tabular-nums text-primary">{value}</p>
       {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
