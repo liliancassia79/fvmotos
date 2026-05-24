@@ -19,12 +19,17 @@ function fromOS(r: any): OrdemServico {
   };
 }
 function toOS(o: Partial<OrdemServico>) {
-  const row: any = {
-    modelo: o.modelo, placa: o.placa, cliente: o.cliente, celular: o.celular ?? null,
-    defeito: o.defeito ?? null, valor: o.valor ?? null,
-    forma_pagamento: o.formaPagamento ?? null, observacoes: o.observacoes ?? null,
-    fotos: o.fotos ?? [], status: o.status ?? "fila",
-  };
+  const row: any = {};
+  if (o.modelo !== undefined) row.modelo = o.modelo;
+  if (o.placa !== undefined) row.placa = o.placa;
+  if (o.cliente !== undefined) row.cliente = o.cliente;
+  if (o.celular !== undefined) row.celular = o.celular ?? null;
+  if (o.defeito !== undefined) row.defeito = o.defeito ?? null;
+  if (o.valor !== undefined) row.valor = o.valor ?? null;
+  if (o.formaPagamento !== undefined) row.forma_pagamento = o.formaPagamento ?? null;
+  if (o.observacoes !== undefined) row.observacoes = o.observacoes ?? null;
+  if (o.fotos !== undefined) row.fotos = o.fotos ?? [];
+  if (o.status !== undefined) row.status = o.status;
   if (typeof o.pago === "boolean") row.pago = o.pago;
   if (o.atualizadoEm) row.atualizado_em = new Date(o.atualizadoEm).toISOString();
   if (o.finalizadoEm) row.finalizado_em = new Date(o.finalizadoEm).toISOString();
