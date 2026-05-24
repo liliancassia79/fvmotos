@@ -375,11 +375,12 @@ function Column({
 }
 
 function Card({
-  it, status, onAdvance, onBack, onRemove, onEdit,
+  it, status, onAdvance, onBack, onRemove, onEdit, onTogglePago,
 }: {
   it: OrdemServico; status: OSStatus;
   onAdvance: (id: string) => void; onBack: (id: string) => void;
   onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
+  onTogglePago: (id: string, pago: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const msgPronta = `Olá ${it.cliente}, sua moto ${it.modelo} (${it.placa}) está pronta para retirada${it.valor ? `. Valor: ${formatBRL(it.valor)}` : ""}.`;
