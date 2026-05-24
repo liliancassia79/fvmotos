@@ -53,7 +53,7 @@ export function OrcamentosTab() {
       await orcDB.create({
         cliente, celular, itens, total,
         formaPagamento: formaPagamento || undefined,
-        status: "rascunho", observacoes: obs || undefined,
+        status: "rascunho", pago: false, observacoes: obs || undefined,
       });
       reset(); await reload();
     } catch (err) { alert((err as Error).message); }
@@ -61,6 +61,7 @@ export function OrcamentosTab() {
   }
 
   async function setStatus(id: string, status: OrcStatus) { await orcDB.setStatus(id, status); reload(); }
+  async function togglePago(o: OrcamentoDB) { await orcDB.setPago(o.id, !o.pago); reload(); }
   async function remove(id: string) {
     if (!confirm("Remover orçamento?")) return;
     await orcDB.remove(id); reload();
@@ -186,11 +187,20 @@ export function OrcamentosTab() {
                 {o.formaPagamento && (
                   <p className="mt-1 text-xs text-muted-foreground">Pagamento: {formaPagamentoLabel[o.formaPagamento]}</p>
                 )}
+                <div className="mt-2">
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${o.pago ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"}`}>
+                    {o.pago ? "● Pago" : "○ Não pago"}
+                  </span>
+                </div>
 
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <button onClick={() => enviarWhats(o)}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90">
                     Enviar via WhatsApp
+                  </button>
+                  <button onClick={() => togglePago(o)}
+                    className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${o.pago ? "border-emerald-600/40 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/20" : "border-border hover:bg-muted"}`}>
+                    {o.pago ? "✓ Pago" : "Marcar pago"}
                   </button>
                   {o.status !== "aprovado" && (
                     <button onClick={() => setStatus(o.id, "aprovado")} className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">Aprovar</button>

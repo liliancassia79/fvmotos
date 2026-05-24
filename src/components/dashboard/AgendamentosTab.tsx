@@ -4,7 +4,19 @@ import { agendamentoMensagemConfirmacao, formatDataHora } from "@/lib/oficina-st
 import { whatsappLink } from "@/lib/os-storage";
 import { Field, Panel, Empty, Pill } from "./ui-bits";
 
-const empty = { cliente: "", celular: "", servico: "", data: "", observacoes: "" };
+const empty = { cliente: "", celular: "", servico: "", servicoOutro: "", data: "", observacoes: "" };
+
+const servicosComuns = [
+  "Troca de óleo",
+  "Revisão geral",
+  "Troca de pastilha de freio",
+  "Troca de pneu",
+  "Regulagem de freio",
+  "Lavagem completa",
+  "Troca de corrente e coroa",
+  "Diagnóstico elétrico",
+  "Injeção eletrônica",
+];
 
 export function AgendamentosTab() {
   const [items, setItems] = useState<AgendamentoDB[]>([]);
@@ -20,13 +32,14 @@ export function AgendamentosTab() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!form.cliente || !form.data || !form.servico) return;
+    const servicoFinal = form.servico === "Outro" ? form.servicoOutro.trim() : form.servico;
+    if (!form.cliente || !form.data || !servicoFinal) return;
     setBusy(true);
     try {
       await agDB.create({
         cliente: form.cliente, celular: form.celular,
         dataHora: new Date(form.data).toISOString(),
-        servico: form.servico, observacoes: form.observacoes || undefined,
+        servico: servicoFinal, observacoes: form.observacoes || undefined,
         confirmado: false,
       });
       setForm(empty); await reload();
@@ -55,9 +68,22 @@ export function AgendamentosTab() {
             <select value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
               <option value="">Selecione...</option>
-              {catalogo.map((s) => <option key={s.id} value={s.nome}>{s.nome}</option>)}
-              <option value="Outro">Outro</option>
+              {catalogo.length > 0 && (
+                <optgroup label="Do catálogo">
+                  {catalogo.map((s) => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                </optgroup>
+              )}
+              <optgroup label="Serviços comuns">
+                {servicosComuns.map((s) => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+              <option value="Outro">Outro (descrever)</option>
             </select>
+            {form.servico === "Outro" && (
+              <input value={form.servicoOutro}
+                onChange={(e) => setForm({ ...form, servicoOutro: e.target.value })}
+                placeholder="Descreva o serviço"
+                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            )}
           </div>
           <Field label="Data e hora" type="datetime-local" value={form.data} onChange={(v) => setForm({ ...form, data: v })} />
           <div>

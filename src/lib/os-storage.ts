@@ -14,6 +14,7 @@ export interface OrdemServico {
   observacoes?: string;
   fotos?: string[];
   status: OSStatus;
+  pago?: boolean;
   criadoEm: number;
   atualizadoEm?: number;
   finalizadoEm?: number;

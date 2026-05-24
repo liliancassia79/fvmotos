@@ -102,7 +102,7 @@ function AppShell() {
   );
 }
 
-const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento, fotos: [] as string[] };
+const empty = { modelo: "", placa: "", cliente: "", celular: "", defeito: "", valor: "", observacoes: "", formaPagamento: "" as "" | FormaPagamento, fotos: [] as string[], pago: false };
 
 function OSView() {
   const [items, setItems] = useState<OrdemServico[]>([]);
@@ -177,6 +177,7 @@ function OSView() {
       observacoes: it.observacoes ?? "",
       formaPagamento: it.formaPagamento ?? "",
       fotos: it.fotos ?? [],
+      pago: !!it.pago,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -251,6 +252,12 @@ function OSView() {
                   ))}
                 </select>
               </div>
+              <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm cursor-pointer hover:bg-muted">
+                <input type="checkbox" checked={form.pago}
+                  onChange={(e) => setForm({ ...form, pago: e.target.checked })}
+                  className="h-4 w-4 accent-primary" />
+                <span>Cliente já pagou</span>
+              </label>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Serviço do catálogo</label>
                 <select onChange={(e) => { aplicarServico(e.target.value); e.target.value = ""; }}
@@ -311,7 +318,8 @@ function OSView() {
           <div className="grid gap-5 md:grid-cols-3">
             {statusOrder.map((s) => (
               <Column key={s} status={s} items={grouped[s]}
-                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar} />
+                onAdvance={advance} onBack={voltar} onRemove={remove} onEdit={editar}
+                onTogglePago={async (id, pago) => { await osDB.update(id, { pago, atualizadoEm: Date.now() }); refresh(); }} />
             ))}
           </div>
         </section>
@@ -337,11 +345,12 @@ const statusStyles: Record<OSStatus, string> = {
 };
 
 function Column({
-  status, items, onAdvance, onBack, onRemove, onEdit,
+  status, items, onAdvance, onBack, onRemove, onEdit, onTogglePago,
 }: {
   status: OSStatus; items: OrdemServico[];
   onAdvance: (id: string) => void; onBack: (id: string) => void;
   onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
+  onTogglePago: (id: string, pago: boolean) => void;
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card/50 p-4">
@@ -358,7 +367,7 @@ function Column({
         )}
         {items.map((it) => (
           <Card key={it.id} it={it} status={status}
-            onAdvance={onAdvance} onBack={onBack} onRemove={onRemove} onEdit={onEdit} />
+            onAdvance={onAdvance} onBack={onBack} onRemove={onRemove} onEdit={onEdit} onTogglePago={onTogglePago} />
         ))}
       </div>
     </div>
@@ -366,11 +375,12 @@ function Column({
 }
 
 function Card({
-  it, status, onAdvance, onBack, onRemove, onEdit,
+  it, status, onAdvance, onBack, onRemove, onEdit, onTogglePago,
 }: {
   it: OrdemServico; status: OSStatus;
   onAdvance: (id: string) => void; onBack: (id: string) => void;
   onRemove: (id: string) => void; onEdit: (it: OrdemServico) => void;
+  onTogglePago: (id: string, pago: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const msgPronta = `Olá ${it.cliente}, sua moto ${it.modelo} (${it.placa}) está pronta para retirada${it.valor ? `. Valor: ${formatBRL(it.valor)}` : ""}.`;
@@ -383,8 +393,14 @@ function Card({
           <p className="font-mono text-xs text-muted-foreground mt-0.5">{it.placa}</p>
         </button>
         {it.valor != null && (
-          <span className="shrink-0 text-xs font-medium tabular-nums">{formatBRL(it.valor)}</span>
+          <span className={`shrink-0 text-xs font-medium tabular-nums ${it.pago ? "text-emerald-600" : ""}`}>{formatBRL(it.valor)}</span>
         )}
+      </div>
+
+      <div className="mt-1 flex items-center gap-2">
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${it.pago ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"}`}>
+          {it.pago ? "● Pago" : "○ Não pago"}
+        </span>
       </div>
 
       <div className="mt-2 text-xs text-muted-foreground flex items-center justify-between">
@@ -432,6 +448,10 @@ function Card({
           <button onClick={() => onBack(it.id)} title="Voltar status"
             className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">←</button>
         )}
+        <button onClick={() => onTogglePago(it.id, !it.pago)} title={it.pago ? "Marcar como não pago" : "Marcar como pago"}
+          className={`rounded-md border px-2.5 py-1.5 text-xs font-medium ${it.pago ? "border-emerald-600/40 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/20" : "border-border hover:bg-muted"}`}>
+          {it.pago ? "✓ Pago" : "Pagar"}
+        </button>
         <button onClick={() => abrirPDFOrdemServico(it)} title="Gerar PDF da O.S."
           className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted">PDF</button>
         {it.celular && (
