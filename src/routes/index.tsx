@@ -120,14 +120,19 @@ function OSView() {
   const [items, setItems] = useState<OrdemServico[]>([]);
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [tempId] = useState(() => crypto.randomUUID());
+  const [tempId, setTempId] = useState(() => crypto.randomUUID());
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
-  const [hidratado, setHidratado] = useState(false);
-  const [catalogo, setCatalogo] = useState<ServicoItem[]>([]);
+  const [catalogo, setCatalogo] = useState<ServicoDB[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setItems(loadOS()); setCatalogo(loadCatalogo()); setHidratado(true); }, []);
-  useEffect(() => { if (hidratado) saveOS(items); }, [items, hidratado]);
+  async function refresh() {
+    try { setItems(await osDB.list()); } catch (e) { console.error(e); }
+  }
+  useEffect(() => {
+    refresh();
+    catDB.list().then(setCatalogo).catch(console.error);
+  }, []);
 
   function aplicarServico(id: string) {
     const s = catalogo.find((x) => x.id === id);
@@ -144,7 +149,7 @@ function OSView() {
     return items.filter((i) => {
       if (filtroStatus !== "todos" && i.status !== filtroStatus) return false;
       if (!q) return true;
-      return [i.modelo, i.placa, i.cliente, i.celular, i.defeito].some((c) => c.toLowerCase().includes(q));
+      return [i.modelo, i.placa, i.cliente, i.celular, i.defeito].some((c) => (c ?? "").toLowerCase().includes(q));
     });
   }, [items, busca, filtroStatus]);
 
@@ -154,28 +159,25 @@ function OSView() {
     return g;
   }, [filtered]);
 
-  function resetForm() { setForm(empty); setEditingId(null); }
+  function resetForm() { setForm(empty); setEditingId(null); setTempId(crypto.randomUUID()); }
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     if (!form.modelo || !form.placa || !form.cliente) return;
     const valor = form.valor ? Number(form.valor.replace(",", ".")) : undefined;
     const formaPagamento = form.formaPagamento || undefined;
     const { formaPagamento: _fp, ...rest } = form;
-
-    if (editingId) {
-      setItems((p) => p.map((it) => it.id === editingId
-        ? { ...it, ...rest, valor, formaPagamento, atualizadoEm: Date.now() }
-        : it));
-    } else {
-      setItems((p) => [{
-        id: tempId,
-        ...rest, valor, formaPagamento,
-        status: "fila",
-        criadoEm: Date.now(),
-      }, ...p]);
-    }
-    resetForm();
+    setSaving(true);
+    try {
+      if (editingId) {
+        await osDB.update(editingId, { ...rest, valor, formaPagamento, atualizadoEm: Date.now() });
+      } else {
+        await osDB.create({ ...rest, valor, formaPagamento, status: "fila" });
+      }
+      resetForm();
+      await refresh();
+    } catch (e) { console.error(e); alert("Erro ao salvar"); }
+    finally { setSaving(false); }
   }
 
   function editar(it: OrdemServico) {
@@ -191,28 +193,28 @@ function OSView() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function advance(id: string) {
-    setItems((p) => p.map((it) => {
-      if (it.id !== id) return it;
-      const novo = nextStatus(it.status);
-      return { ...it, status: novo, atualizadoEm: Date.now(), finalizadoEm: novo === "pronta" ? Date.now() : it.finalizadoEm };
-    }));
+  async function advance(id: string) {
+    const it = items.find((x) => x.id === id); if (!it) return;
+    const novo = nextStatus(it.status);
+    await osDB.update(id, { status: novo, atualizadoEm: Date.now(), finalizadoEm: novo === "pronta" ? Date.now() : it.finalizadoEm });
+    refresh();
   }
 
-  function voltar(id: string) {
-    setItems((p) => p.map((it) => {
-      if (it.id !== id) return it;
-      const i = statusOrder.indexOf(it.status);
-      const novo = statusOrder[Math.max(0, i - 1)];
-      return { ...it, status: novo, atualizadoEm: Date.now() };
-    }));
+  async function voltar(id: string) {
+    const it = items.find((x) => x.id === id); if (!it) return;
+    const i = statusOrder.indexOf(it.status);
+    const novo = statusOrder[Math.max(0, i - 1)];
+    await osDB.update(id, { status: novo, atualizadoEm: Date.now() });
+    refresh();
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
     if (!confirm("Remover esta O.S.?")) return;
-    setItems((p) => p.filter((it) => it.id !== id));
+    await osDB.remove(id);
     if (editingId === id) resetForm();
+    refresh();
   }
+
 
   const fotosId = editingId ?? tempId;
 
