@@ -68,9 +68,22 @@ export function AgendamentosTab() {
             <select value={form.servico} onChange={(e) => setForm({ ...form, servico: e.target.value })}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
               <option value="">Selecione...</option>
-              {catalogo.map((s) => <option key={s.id} value={s.nome}>{s.nome}</option>)}
-              <option value="Outro">Outro</option>
+              {catalogo.length > 0 && (
+                <optgroup label="Do catálogo">
+                  {catalogo.map((s) => <option key={s.id} value={s.nome}>{s.nome}</option>)}
+                </optgroup>
+              )}
+              <optgroup label="Serviços comuns">
+                {servicosComuns.map((s) => <option key={s} value={s}>{s}</option>)}
+              </optgroup>
+              <option value="Outro">Outro (descrever)</option>
             </select>
+            {form.servico === "Outro" && (
+              <input value={form.servicoOutro}
+                onChange={(e) => setForm({ ...form, servicoOutro: e.target.value })}
+                placeholder="Descreva o serviço"
+                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            )}
           </div>
           <Field label="Data e hora" type="datetime-local" value={form.data} onChange={(v) => setForm({ ...form, data: v })} />
           <div>
