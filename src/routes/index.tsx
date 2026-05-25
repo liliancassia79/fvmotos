@@ -42,8 +42,24 @@ const menu: { id: View; label: string; icon: string }[] = [
 
 function AppShell() {
   const [view, setView] = useState<View>("dashboard");
+  const [history, setHistory] = useState<View[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { install, installed, canInstall } = useInstallPrompt();
+
+  function goTo(next: View) {
+    setHistory((h) => (next === view ? h : [...h, view]));
+    setView(next);
+    setMobileOpen(false);
+  }
+  function goBack() {
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1];
+      setView(prev);
+      return h.slice(0, -1);
+    });
+  }
+  const currentLabel = menu.find((m) => m.id === view)?.label ?? "";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -55,7 +71,7 @@ function AppShell() {
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {menu.map((m) => (
-            <button key={m.id} onClick={() => { setView(m.id); setMobileOpen(false); }}
+            <button key={m.id} onClick={() => goTo(m.id)}
               className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                 view === m.id
                   ? "bg-primary text-primary-foreground"
@@ -94,6 +110,19 @@ function AppShell() {
             </button>
           )}
         </header>
+
+        {/* Barra superior com botão Voltar — visível em todas as telas */}
+        <div className="sticky top-0 md:top-0 z-10 border-b border-border bg-card/80 backdrop-blur px-4 md:px-8 py-2 flex items-center gap-3">
+          <button
+            onClick={goBack}
+            disabled={history.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Voltar para a aba anterior"
+            aria-label="Voltar">
+            ← Voltar
+          </button>
+          <span className="text-xs text-muted-foreground truncate">{currentLabel}</span>
+        </div>
 
         <main className="flex-1 px-4 md:px-8 py-6 max-w-7xl w-full mx-auto">
           {view === "dashboard" && <DashboardTab />}

@@ -71,6 +71,11 @@
 
 @layer base {
   * { border-color: var(--color-border); }
+  /* No mobile, fundo amarelo da marca aparece durante o carregamento (splash). */
+  html { background-color: #FBBF24; }
+  @media (min-width: 768px) {
+    html { background-color: var(--color-background); }
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
