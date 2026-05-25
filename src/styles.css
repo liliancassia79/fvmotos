@@ -40,39 +40,39 @@
 
 :root {
   --radius: 0.75rem;
-  /* FV Motos: somente preto + amarelo da logo */
-  --background: oklch(0.14 0 0);
-  --foreground: oklch(0.96 0.02 95);
-  --card: oklch(0.19 0 0);
-  --card-foreground: oklch(0.96 0.02 95);
-  --popover: oklch(0.19 0 0);
-  --popover-foreground: oklch(0.96 0.02 95);
-  --primary: oklch(0.84 0.18 88);
-  --primary-foreground: oklch(0.14 0 0);
-  --secondary: oklch(0.24 0 0);
-  --secondary-foreground: oklch(0.96 0.02 95);
-  --muted: oklch(0.22 0 0);
-  --muted-foreground: oklch(0.7 0.04 90);
-  --accent: oklch(0.84 0.18 88);
-  --accent-foreground: oklch(0.14 0 0);
+  /* FV Motos: preto + laranja exato da logo (#E26319) + prata */
+  --background: oklch(0.16 0 0);
+  --foreground: oklch(0.96 0.01 60);
+  --card: oklch(0.21 0 0);
+  --card-foreground: oklch(0.96 0.01 60);
+  --popover: oklch(0.21 0 0);
+  --popover-foreground: oklch(0.96 0.01 60);
+  --primary: oklch(0.66 0.19 42);
+  --primary-foreground: oklch(0.98 0.01 60);
+  --secondary: oklch(0.26 0 0);
+  --secondary-foreground: oklch(0.96 0.01 60);
+  --muted: oklch(0.23 0 0);
+  --muted-foreground: oklch(0.72 0.02 60);
+  --accent: oklch(0.66 0.19 42);
+  --accent-foreground: oklch(0.98 0.01 60);
   --destructive: oklch(0.6 0.22 27);
-  --destructive-foreground: oklch(0.96 0.02 95);
-  --border: oklch(0.28 0.02 90);
-  --input: oklch(0.28 0.02 90);
-  --ring: oklch(0.84 0.18 88);
+  --destructive-foreground: oklch(0.98 0.01 60);
+  --border: oklch(0.3 0.01 60);
+  --input: oklch(0.3 0.01 60);
+  --ring: oklch(0.66 0.19 42);
 
-  --status-queue: oklch(0.84 0.18 88);
-  --status-queue-foreground: oklch(0.14 0 0);
-  --status-fixing: oklch(0.7 0.15 60);
-  --status-fixing-foreground: oklch(0.14 0 0);
-  --status-ready: oklch(0.96 0.02 95);
-  --status-ready-foreground: oklch(0.14 0 0);
+  --status-queue: oklch(0.72 0.04 60);
+  --status-queue-foreground: oklch(0.16 0 0);
+  --status-fixing: oklch(0.66 0.19 42);
+  --status-fixing-foreground: oklch(0.98 0.01 60);
+  --status-ready: oklch(0.78 0.16 145);
+  --status-ready-foreground: oklch(0.16 0 0);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
-  /* No mobile, fundo amarelo da marca aparece durante o carregamento (splash). */
-  html { background-color: #FBBF24; }
+  /* No mobile, fundo laranja da marca aparece durante o carregamento (splash). */
+  html { background-color: #E26319; }
   @media (min-width: 768px) {
     html { background-color: var(--color-background); }
   }
