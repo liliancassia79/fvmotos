@@ -42,8 +42,24 @@ const menu: { id: View; label: string; icon: string }[] = [
 
 function AppShell() {
   const [view, setView] = useState<View>("dashboard");
+  const [history, setHistory] = useState<View[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { install, installed, canInstall } = useInstallPrompt();
+
+  function goTo(next: View) {
+    setHistory((h) => (next === view ? h : [...h, view]));
+    setView(next);
+    setMobileOpen(false);
+  }
+  function goBack() {
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      const prev = h[h.length - 1];
+      setView(prev);
+      return h.slice(0, -1);
+    });
+  }
+  const currentLabel = menu.find((m) => m.id === view)?.label ?? "";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -55,7 +71,7 @@ function AppShell() {
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {menu.map((m) => (
-            <button key={m.id} onClick={() => { setView(m.id); setMobileOpen(false); }}
+            <button key={m.id} onClick={() => goTo(m.id)}
               className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                 view === m.id
                   ? "bg-primary text-primary-foreground"
