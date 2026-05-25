@@ -111,6 +111,19 @@ function AppShell() {
           )}
         </header>
 
+        {/* Barra superior com botão Voltar — visível em todas as telas */}
+        <div className="sticky top-0 md:top-0 z-10 border-b border-border bg-card/80 backdrop-blur px-4 md:px-8 py-2 flex items-center gap-3">
+          <button
+            onClick={goBack}
+            disabled={history.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Voltar para a aba anterior"
+            aria-label="Voltar">
+            ← Voltar
+          </button>
+          <span className="text-xs text-muted-foreground truncate">{currentLabel}</span>
+        </div>
+
         <main className="flex-1 px-4 md:px-8 py-6 max-w-7xl w-full mx-auto">
           {view === "dashboard" && <DashboardTab />}
           {view === "os" && <OSView />}
