@@ -31,7 +31,7 @@ export const Route = createFileRoute("/")({
 type View = "dashboard" | "os" | "clientes" | "orcamentos" | "agenda" | "faturamento" | "catalogo";
 
 const menu: { id: View; label: string; icon: string }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "▦" },
+  { id: "dashboard", label: "Início", icon: "▦" },
   { id: "os", label: "Ordens de Serviço", icon: "🔧" },
   { id: "clientes", label: "Clientes", icon: "👤" },
   { id: "orcamentos", label: "Orçamentos", icon: "💬" },
@@ -74,11 +74,12 @@ function AppShell() {
             <button key={m.id} onClick={() => goTo(m.id)}
               className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
                 view === m.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}>
-              <span className="text-base">{m.icon}</span>
+              <span className={`text-base ${view === m.id ? "" : "text-primary"}`}>{m.icon}</span>
               <span>{m.label}</span>
+              {view === m.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-foreground" />}
             </button>
           ))}
         </nav>
