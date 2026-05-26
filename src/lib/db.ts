@@ -1,53 +1,75 @@
-import { supabase } from "@/integrations/supabase/client";
+import {
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, orderBy, serverTimestamp, Timestamp,
+} from "firebase/firestore";
+import { db } from "./firebase";
 import type { OrdemServico, OSStatus } from "./os-storage";
 import type { FormaPagamento } from "./pagamento";
 
+function tsToMillis(v: any): number {
+  if (!v) return Date.now();
+  if (v instanceof Timestamp) return v.toMillis();
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return new Date(v).getTime();
+  if (v?.seconds) return v.seconds * 1000;
+  return Date.now();
+}
+
 // ---------- Ordens de Serviço ----------
-function fromOS(r: any): OrdemServico {
+const osCol = () => collection(db, "ordens_servico");
+
+function fromOS(id: string, r: any): OrdemServico {
   return {
-    id: r.id, modelo: r.modelo, placa: r.placa, cliente: r.cliente,
-    celular: r.celular ?? "", defeito: r.defeito ?? "",
+    id,
+    modelo: r.modelo ?? "",
+    placa: r.placa ?? "",
+    cliente: r.cliente ?? "",
+    celular: r.celular ?? "",
+    defeito: r.defeito ?? "",
     valor: r.valor != null ? Number(r.valor) : undefined,
-    formaPagamento: (r.forma_pagamento ?? undefined) as FormaPagamento | undefined,
+    formaPagamento: r.formaPagamento as FormaPagamento | undefined,
     observacoes: r.observacoes ?? undefined,
     fotos: r.fotos ?? [],
-    status: r.status as OSStatus,
+    status: (r.status ?? "fila") as OSStatus,
     pago: !!r.pago,
-    criadoEm: new Date(r.criado_em).getTime(),
-    atualizadoEm: r.atualizado_em ? new Date(r.atualizado_em).getTime() : undefined,
-    finalizadoEm: r.finalizado_em ? new Date(r.finalizado_em).getTime() : undefined,
+    criadoEm: tsToMillis(r.criadoEm),
+    atualizadoEm: r.atualizadoEm ? tsToMillis(r.atualizadoEm) : undefined,
+    finalizadoEm: r.finalizadoEm ? tsToMillis(r.finalizadoEm) : undefined,
   };
 }
-function toOS(o: Partial<OrdemServico>) {
-  const row: any = {};
-  if (o.modelo !== undefined) row.modelo = o.modelo;
-  if (o.placa !== undefined) row.placa = o.placa;
-  if (o.cliente !== undefined) row.cliente = o.cliente;
-  if (o.celular !== undefined) row.celular = o.celular ?? null;
-  if (o.defeito !== undefined) row.defeito = o.defeito ?? null;
-  if (o.valor !== undefined) row.valor = o.valor ?? null;
-  if (o.formaPagamento !== undefined) row.forma_pagamento = o.formaPagamento ?? null;
-  if (o.observacoes !== undefined) row.observacoes = o.observacoes ?? null;
-  if (o.fotos !== undefined) row.fotos = o.fotos ?? [];
-  if (o.status !== undefined) row.status = o.status;
+
+function cleanOS(o: Partial<OrdemServico>): Record<string, any> {
+  const row: Record<string, any> = {};
+  const set = (k: string, v: any) => { if (v !== undefined) row[k] = v; };
+  set("modelo", o.modelo);
+  set("placa", o.placa);
+  set("cliente", o.cliente);
+  set("celular", o.celular ?? null);
+  set("defeito", o.defeito ?? null);
+  set("valor", o.valor ?? null);
+  set("formaPagamento", o.formaPagamento ?? null);
+  set("observacoes", o.observacoes ?? null);
+  set("fotos", o.fotos ?? []);
+  set("status", o.status);
   if (typeof o.pago === "boolean") row.pago = o.pago;
-  if (o.atualizadoEm) row.atualizado_em = new Date(o.atualizadoEm).toISOString();
-  if (o.finalizadoEm) row.finalizado_em = new Date(o.finalizadoEm).toISOString();
+  if (o.atualizadoEm) row.atualizadoEm = new Date(o.atualizadoEm).getTime();
+  if (o.finalizadoEm) row.finalizadoEm = new Date(o.finalizadoEm).getTime();
   return row;
 }
+
 export const osDB = {
   async list(): Promise<OrdemServico[]> {
-    const { data, error } = await supabase.from("ordens_servico").select("*").order("criado_em", { ascending: false });
-    if (error) throw error; return (data ?? []).map(fromOS);
+    const snap = await getDocs(query(osCol(), orderBy("criadoEm", "desc")));
+    return snap.docs.map((d) => fromOS(d.id, d.data()));
   },
   async create(o: Partial<OrdemServico>) {
-    const { error } = await supabase.from("ordens_servico").insert(toOS(o)); if (error) throw error;
+    await addDoc(osCol(), { ...cleanOS(o), criadoEm: Date.now(), _serverTs: serverTimestamp() });
   },
   async update(id: string, o: Partial<OrdemServico>) {
-    const { error } = await supabase.from("ordens_servico").update(toOS(o)).eq("id", id); if (error) throw error;
+    await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
   },
   async remove(id: string) {
-    const { error } = await supabase.from("ordens_servico").delete().eq("id", id); if (error) throw error;
+    await deleteDoc(doc(db, "ordens_servico", id));
   },
 };
 
@@ -55,28 +77,31 @@ export const osDB = {
 export interface ClienteDB {
   id: string; nome: string; celular: string; email?: string; observacoes?: string; criadoEm: number;
 }
-const fromCli = (r: any): ClienteDB => ({
-  id: r.id, nome: r.nome, celular: r.celular ?? "", email: r.email ?? undefined,
-  observacoes: r.observacoes ?? undefined, criadoEm: new Date(r.created_at).getTime(),
+const cliCol = () => collection(db, "clientes");
+const fromCli = (id: string, r: any): ClienteDB => ({
+  id, nome: r.nome ?? "", celular: r.celular ?? "",
+  email: r.email ?? undefined, observacoes: r.observacoes ?? undefined,
+  criadoEm: tsToMillis(r.criadoEm),
 });
 export const clientesDB = {
   async list(): Promise<ClienteDB[]> {
-    const { data, error } = await supabase.from("clientes").select("*").order("created_at", { ascending: false });
-    if (error) throw error; return (data ?? []).map(fromCli);
+    const snap = await getDocs(query(cliCol(), orderBy("criadoEm", "desc")));
+    return snap.docs.map((d) => fromCli(d.id, d.data()));
   },
   async create(c: { nome: string; celular?: string; email?: string; observacoes?: string }) {
-    const { error } = await supabase.from("clientes").insert({
-      nome: c.nome, celular: c.celular ?? null, email: c.email ?? null, observacoes: c.observacoes ?? null,
-    }); if (error) throw error;
+    await addDoc(cliCol(), {
+      nome: c.nome, celular: c.celular ?? null,
+      email: c.email ?? null, observacoes: c.observacoes ?? null,
+      criadoEm: Date.now(),
+    });
   },
   async update(id: string, c: Partial<ClienteDB>) {
-    const { error } = await supabase.from("clientes").update({
-      nome: c.nome, celular: c.celular ?? null, email: c.email ?? null, observacoes: c.observacoes ?? null,
-    }).eq("id", id); if (error) throw error;
+    await updateDoc(doc(db, "clientes", id), {
+      nome: c.nome ?? null, celular: c.celular ?? null,
+      email: c.email ?? null, observacoes: c.observacoes ?? null,
+    });
   },
-  async remove(id: string) {
-    const { error } = await supabase.from("clientes").delete().eq("id", id); if (error) throw error;
-  },
+  async remove(id: string) { await deleteDoc(doc(db, "clientes", id)); },
 };
 
 // ---------- Orçamentos ----------
@@ -91,93 +116,100 @@ export interface OrcamentoDB {
   observacoes?: string;
   criadoEm: number;
 }
-const fromOrc = (r: any): OrcamentoDB => ({
-  id: r.id, cliente: r.cliente, celular: r.celular ?? "",
+const orcCol = () => collection(db, "orcamentos");
+const fromOrc = (id: string, r: any): OrcamentoDB => ({
+  id, cliente: r.cliente ?? "", celular: r.celular ?? "",
   itens: (r.itens ?? []) as OrcamentoItem[],
   total: Number(r.total ?? 0),
-  formaPagamento: (r.forma_pagamento ?? undefined) as FormaPagamento | undefined,
+  formaPagamento: r.formaPagamento as FormaPagamento | undefined,
   status: (r.status ?? "rascunho") as OrcStatus,
   pago: !!r.pago,
   observacoes: r.observacoes ?? undefined,
-  criadoEm: new Date(r.created_at).getTime(),
+  criadoEm: tsToMillis(r.criadoEm),
 });
 export const orcDB = {
   async list(): Promise<OrcamentoDB[]> {
-    const { data, error } = await supabase.from("orcamentos").select("*").order("created_at", { ascending: false });
-    if (error) throw error; return (data ?? []).map(fromOrc);
+    const snap = await getDocs(query(orcCol(), orderBy("criadoEm", "desc")));
+    return snap.docs.map((d) => fromOrc(d.id, d.data()));
   },
   async create(o: Omit<OrcamentoDB, "id" | "criadoEm">) {
-    const { error } = await supabase.from("orcamentos").insert({
-      cliente: o.cliente, celular: o.celular || null, itens: o.itens as any, total: o.total,
-      forma_pagamento: o.formaPagamento ?? null, status: o.status, pago: !!o.pago, observacoes: o.observacoes ?? null,
-    }); if (error) throw error;
+    await addDoc(orcCol(), {
+      cliente: o.cliente, celular: o.celular ?? null,
+      itens: o.itens, total: o.total,
+      formaPagamento: o.formaPagamento ?? null,
+      status: o.status, pago: !!o.pago,
+      observacoes: o.observacoes ?? null,
+      criadoEm: Date.now(),
+    });
   },
   async setStatus(id: string, status: OrcStatus) {
-    const { error } = await supabase.from("orcamentos").update({ status }).eq("id", id); if (error) throw error;
+    await updateDoc(doc(db, "orcamentos", id), { status });
   },
   async setPago(id: string, pago: boolean) {
-    const { error } = await supabase.from("orcamentos").update({ pago }).eq("id", id); if (error) throw error;
+    await updateDoc(doc(db, "orcamentos", id), { pago });
   },
-  async remove(id: string) {
-    const { error } = await supabase.from("orcamentos").delete().eq("id", id); if (error) throw error;
-  },
+  async remove(id: string) { await deleteDoc(doc(db, "orcamentos", id)); },
 };
 
 // ---------- Agendamentos ----------
 export interface AgendamentoDB {
   id: string; cliente: string; celular: string;
-  dataHora: string; // ISO
+  dataHora: string;
   servico: string; observacoes?: string; confirmado: boolean;
   criadoEm: number;
 }
-const fromAg = (r: any): AgendamentoDB => ({
-  id: r.id, cliente: r.cliente, celular: r.celular ?? "",
-  dataHora: r.data_hora, servico: r.servico ?? "", observacoes: r.observacoes ?? undefined,
-  confirmado: !!r.confirmado, criadoEm: new Date(r.created_at).getTime(),
+const agCol = () => collection(db, "agendamentos");
+const fromAg = (id: string, r: any): AgendamentoDB => ({
+  id, cliente: r.cliente ?? "", celular: r.celular ?? "",
+  dataHora: r.dataHora ?? new Date().toISOString(),
+  servico: r.servico ?? "", observacoes: r.observacoes ?? undefined,
+  confirmado: !!r.confirmado, criadoEm: tsToMillis(r.criadoEm),
 });
 export const agDB = {
   async list(): Promise<AgendamentoDB[]> {
-    const { data, error } = await supabase.from("agendamentos").select("*").order("data_hora", { ascending: true });
-    if (error) throw error; return (data ?? []).map(fromAg);
+    const snap = await getDocs(query(agCol(), orderBy("dataHora", "asc")));
+    return snap.docs.map((d) => fromAg(d.id, d.data()));
   },
   async create(a: Omit<AgendamentoDB, "id" | "criadoEm">) {
-    const { error } = await supabase.from("agendamentos").insert({
-      cliente: a.cliente, celular: a.celular || null, data_hora: a.dataHora,
-      servico: a.servico, observacoes: a.observacoes ?? null, confirmado: a.confirmado,
-    }); if (error) throw error;
+    await addDoc(agCol(), {
+      cliente: a.cliente, celular: a.celular ?? null,
+      dataHora: a.dataHora, servico: a.servico,
+      observacoes: a.observacoes ?? null, confirmado: a.confirmado,
+      criadoEm: Date.now(),
+    });
   },
   async setConfirmado(id: string, confirmado: boolean) {
-    const { error } = await supabase.from("agendamentos").update({ confirmado }).eq("id", id); if (error) throw error;
+    await updateDoc(doc(db, "agendamentos", id), { confirmado });
   },
-  async remove(id: string) {
-    const { error } = await supabase.from("agendamentos").delete().eq("id", id); if (error) throw error;
-  },
+  async remove(id: string) { await deleteDoc(doc(db, "agendamentos", id)); },
 };
 
 // ---------- Catálogo ----------
 export type ServicoCategoria = "revisao" | "pecas" | "motor" | "eletrica" | "injecao" | "acessorios";
 export interface ServicoDB { id: string; nome: string; preco: number; categoria: ServicoCategoria; }
-const fromSrv = (r: any): ServicoDB => ({
-  id: r.id, nome: r.nome, preco: Number(r.preco ?? 0),
+const catCol = () => collection(db, "servicos_catalogo");
+const fromSrv = (id: string, r: any): ServicoDB => ({
+  id, nome: r.nome ?? "", preco: Number(r.preco ?? 0),
   categoria: (r.categoria ?? "revisao") as ServicoCategoria,
 });
 export const catDB = {
   async list(): Promise<ServicoDB[]> {
-    const { data, error } = await supabase.from("servicos_catalogo").select("*").order("categoria").order("nome");
-    if (error) throw error; return (data ?? []).map(fromSrv);
+    const snap = await getDocs(catCol());
+    const items = snap.docs.map((d) => fromSrv(d.id, d.data()));
+    return items.sort((a, b) =>
+      a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
   },
   async create(s: Omit<ServicoDB, "id">) {
-    const { error } = await supabase.from("servicos_catalogo").insert({ nome: s.nome, preco: s.preco, categoria: s.categoria });
-    if (error) throw error;
+    await addDoc(catCol(), { nome: s.nome, preco: s.preco, categoria: s.categoria });
   },
   async update(id: string, s: Partial<ServicoDB>) {
-    const { error } = await supabase.from("servicos_catalogo").update({
-      nome: s.nome, preco: s.preco, categoria: s.categoria,
-    }).eq("id", id); if (error) throw error;
+    const patch: Record<string, any> = {};
+    if (s.nome !== undefined) patch.nome = s.nome;
+    if (s.preco !== undefined) patch.preco = s.preco;
+    if (s.categoria !== undefined) patch.categoria = s.categoria;
+    await updateDoc(doc(db, "servicos_catalogo", id), patch);
   },
-  async remove(id: string) {
-    const { error } = await supabase.from("servicos_catalogo").delete().eq("id", id); if (error) throw error;
-  },
+  async remove(id: string) { await deleteDoc(doc(db, "servicos_catalogo", id)); },
 };
 
 export const categoriaLabel: Record<ServicoCategoria, string> = {
