@@ -140,10 +140,6 @@ export const orcDB = {
       callback(snap.docs.map((d) => fromOrc(d.id, d.data())));
     });
   },
-  async list(): Promise<OrcamentoDB[]> {
-    const snap = await getDocs(query(orcCol(), orderBy("criadoEm", "desc")));
-    return snap.docs.map((d) => fromOrc(d.id, d.data()));
-  },
   async create(o: Omit<OrcamentoDB, "id" | "criadoEm">) {
     await addDoc(orcCol(), {
       cliente: o.cliente, celular: o.celular ?? null,
