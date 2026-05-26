@@ -207,11 +207,13 @@ const fromSrv = (id: string, r: any): ServicoDB => ({
   categoria: (r.categoria ?? "revisao") as ServicoCategoria,
 });
 export const catDB = {
-  async list(): Promise<ServicoDB[]> {
-    const snap = await getDocs(catCol());
-    const items = snap.docs.map((d) => fromSrv(d.id, d.data()));
-    return items.sort((a, b) =>
-      a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
+  subscribe(callback: (servicos: ServicoDB[]) => void) {
+    return onSnapshot(catCol(), (snap) => {
+      const items = snap.docs.map((d) => fromSrv(d.id, d.data()));
+      items.sort((a, b) =>
+        a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
+      callback(items);
+    });
   },
   async create(s: Omit<ServicoDB, "id">) {
     await addDoc(catCol(), { nome: s.nome, preco: s.preco, categoria: s.categoria });
