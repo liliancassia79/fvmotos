@@ -25,6 +25,38 @@ export function FaturamentoTab() {
     return () => { unsub1(); unsub2(); };
   }, []);
 
+  const pagamentos = useMemo<Pagamento[]>(() => {
+    const lista: Pagamento[] = [];
+    for (const o of ordens) {
+      if (o.pago && (o.valor ?? 0) > 0) {
+        lista.push({
+          id: `os-${o.id}`,
+          origem: "os",
+          cliente: o.cliente,
+          descricao: `O.S. ${o.modelo} · ${o.placa}`,
+          valor: o.valor ?? 0,
+          formaPagamento: o.formaPagamento,
+          pagoEm: o.finalizadoEm ?? o.atualizadoEm ?? o.criadoEm,
+        });
+      }
+    }
+    for (const o of orcs) {
+      if (o.pago && (o.total ?? 0) > 0) {
+        lista.push({
+          id: `orc-${o.id}`,
+          origem: "orcamento",
+          cliente: o.cliente,
+          descricao: "Orçamento aprovado",
+          valor: o.total ?? 0,
+          formaPagamento: o.formaPagamento,
+          pagoEm: o.criadoEm,
+        });
+      }
+    }
+    lista.sort((a, b) => b.pagoEm - a.pagoEm);
+    return lista;
+  }, [ordens, orcs]);
+
   const stats = useMemo(() => {
     const faturado = pagamentos.reduce((s, p) => s + p.valor, 0);
     const agora = new Date();
