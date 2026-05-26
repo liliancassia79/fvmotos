@@ -156,7 +156,8 @@ function OSView() {
     return () => unsub();
   }, []);
   useEffect(() => {
-    catDB.list().then(setCatalogo).catch(console.error);
+    const unsub = catDB.subscribe(setCatalogo);
+    return () => unsub();
   }, []);
 
   function aplicarServico(id: string) {
