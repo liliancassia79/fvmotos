@@ -1,6 +1,7 @@
 import {
   collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, orderBy, serverTimestamp, Timestamp,
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp,
+  type Query, type QuerySnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { OrdemServico, OSStatus } from "./os-storage";
