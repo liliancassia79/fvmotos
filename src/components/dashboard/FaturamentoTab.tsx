@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { osDB, orcDB } from "@/lib/db";
 import { formatBRL } from "@/lib/os-storage";
+import { formaPagamentoLabel } from "@/lib/pagamento";
 import { Empty } from "./ui-bits";
 
 type Pagamento = {
   id: string;
   origem: "os" | "orcamento";
-  origem_id: string;
   cliente: string;
-  descricao: string | null;
+  descricao: string;
   valor: number;
-  forma_pagamento: string | null;
-  status: string;
-  pago_em: string;
+  formaPagamento?: string;
+  pagoEm: number;
 };
 
 export function FaturamentoTab() {
@@ -20,37 +19,58 @@ export function FaturamentoTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("pagamentos")
-        .select("*")
-        .order("pago_em", { ascending: false });
-      setPagamentos((data ?? []) as Pagamento[]);
-      setLoading(false);
-    };
+    let alive = true;
+    async function load() {
+      try {
+        const [ordens, orcs] = await Promise.all([osDB.list(), orcDB.list()]);
+        const lista: Pagamento[] = [];
+        for (const o of ordens) {
+          if (o.pago && (o.valor ?? 0) > 0) {
+            lista.push({
+              id: `os-${o.id}`,
+              origem: "os",
+              cliente: o.cliente,
+              descricao: `O.S. ${o.modelo} · ${o.placa}`,
+              valor: o.valor ?? 0,
+              formaPagamento: o.formaPagamento,
+              pagoEm: o.finalizadoEm ?? o.atualizadoEm ?? o.criadoEm,
+            });
+          }
+        }
+        for (const o of orcs) {
+          if (o.pago && (o.total ?? 0) > 0) {
+            lista.push({
+              id: `orc-${o.id}`,
+              origem: "orcamento",
+              cliente: o.cliente,
+              descricao: "Orçamento aprovado",
+              valor: o.total ?? 0,
+              formaPagamento: o.formaPagamento,
+              pagoEm: o.criadoEm,
+            });
+          }
+        }
+        lista.sort((a, b) => b.pagoEm - a.pagoEm);
+        if (alive) setPagamentos(lista);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
     load();
-
-    const channel = supabase
-      .channel("pagamentos-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pagamentos" }, load)
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const t = setInterval(load, 15000);
+    return () => { alive = false; clearInterval(t); };
   }, []);
 
   const stats = useMemo(() => {
-    const faturado = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
+    const faturado = pagamentos.reduce((s, p) => s + p.valor, 0);
     const agora = new Date();
-    const mes = agora.getMonth();
-    const ano = agora.getFullYear();
     const noMes = pagamentos.filter((p) => {
-      const d = new Date(p.pago_em);
-      return d.getMonth() === mes && d.getFullYear() === ano;
+      const d = new Date(p.pagoEm);
+      return d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear();
     });
-    const mesAtual = noMes.reduce((s, p) => s + Number(p.valor || 0), 0);
+    const mesAtual = noMes.reduce((s, p) => s + p.valor, 0);
     const ticketMedio = pagamentos.length ? faturado / pagamentos.length : 0;
-    return { faturado, mesAtual, ticketMedio, qtdMes: noMes.length };
+    return { faturado, mesAtual, ticketMedio };
   }, [pagamentos]);
 
   return (
@@ -89,20 +109,20 @@ export function FaturamentoTab() {
                 {pagamentos.map((p) => (
                   <tr key={p.id} className="border-t border-border">
                     <td className="py-2 text-xs tabular-nums">
-                      {new Date(p.pago_em).toLocaleDateString("pt-BR")}
+                      {new Date(p.pagoEm).toLocaleDateString("pt-BR")}
                     </td>
                     <td className="py-2">{p.cliente}</td>
-                    <td className="py-2 text-muted-foreground">{p.descricao ?? "—"}</td>
+                    <td className="py-2 text-muted-foreground">{p.descricao}</td>
                     <td className="py-2 text-xs">
                       <span className="rounded bg-muted px-2 py-0.5">
                         {p.origem === "os" ? "O.S." : "Orçamento"}
                       </span>
                     </td>
                     <td className="py-2 text-xs text-muted-foreground">
-                      {p.forma_pagamento ?? "—"}
+                      {p.formaPagamento ? formaPagamentoLabel[p.formaPagamento as keyof typeof formaPagamentoLabel] ?? p.formaPagamento : "—"}
                     </td>
                     <td className="py-2 text-right tabular-nums font-medium">
-                      {formatBRL(Number(p.valor))}
+                      {formatBRL(p.valor)}
                     </td>
                   </tr>
                 ))}
