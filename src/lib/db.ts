@@ -178,16 +178,18 @@ const fromAg = (id: string, r: any): AgendamentoDB => ({
   confirmado: !!r.confirmado, criadoEm: tsToMillis(r.criadoEm),
 });
 export const agDB = {
-  async list(): Promise<AgendamentoDB[]> {
-    const snap = await getDocs(query(agCol(), orderBy("dataHora", "asc")));
-    return snap.docs.map((d) => fromAg(d.id, d.data()));
+  subscribe(callback: (ags: AgendamentoDB[]) => void) {
+    const q = query(agCol(), orderBy("dataHora", "asc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map((d) => fromAg(d.id, d.data())));
+    });
   },
   async create(a: Omit<AgendamentoDB, "id" | "criadoEm">) {
     await addDoc(agCol(), {
       cliente: a.cliente, celular: a.celular ?? null,
       dataHora: a.dataHora, servico: a.servico,
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
-      criadoEm: Date.now(),
+      criadoEm: serverTimestamp(),
     });
   },
   async setConfirmado(id: string, confirmado: boolean) {
