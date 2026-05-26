@@ -85,21 +85,24 @@ const fromCli = (id: string, r: any): ClienteDB => ({
   criadoEm: tsToMillis(r.criadoEm),
 });
 export const clientesDB = {
-  async list(): Promise<ClienteDB[]> {
-    const snap = await getDocs(query(cliCol(), orderBy("criadoEm", "desc")));
-    return snap.docs.map((d) => fromCli(d.id, d.data()));
+  subscribe(callback: (clientes: ClienteDB[]) => void) {
+    const q = query(cliCol(), orderBy("criadoEm", "desc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map((d) => fromCli(d.id, d.data())));
+    });
   },
   async create(c: { nome: string; celular?: string; email?: string; observacoes?: string }) {
     await addDoc(cliCol(), {
       nome: c.nome, celular: c.celular ?? null,
       email: c.email ?? null, observacoes: c.observacoes ?? null,
-      criadoEm: Date.now(),
+      criadoEm: serverTimestamp(),
     });
   },
   async update(id: string, c: Partial<ClienteDB>) {
     await updateDoc(doc(db, "clientes", id), {
       nome: c.nome ?? null, celular: c.celular ?? null,
       email: c.email ?? null, observacoes: c.observacoes ?? null,
+      atualizadoEm: serverTimestamp(),
     });
   },
   async remove(id: string) { await deleteDoc(doc(db, "clientes", id)); },

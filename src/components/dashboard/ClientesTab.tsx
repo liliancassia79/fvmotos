@@ -12,8 +12,10 @@ export function ClientesTab() {
   const [busca, setBusca] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function reload() { setItems(await clientesDB.list()); }
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    const unsub = clientesDB.subscribe(setItems);
+    return () => unsub();
+  }, []);
 
   function reset() { setForm(empty); setEditingId(null); }
 
@@ -24,7 +26,7 @@ export function ClientesTab() {
     try {
       if (editingId) await clientesDB.update(editingId, form);
       else await clientesDB.create(form);
-      reset(); await reload();
+      reset();
     } catch (err) { alert((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -38,7 +40,6 @@ export function ClientesTab() {
     if (!confirm("Remover este cliente?")) return;
     await clientesDB.remove(id);
     if (editingId === id) reset();
-    reload();
   }
 
   const filtrados = items.filter((c) => {
