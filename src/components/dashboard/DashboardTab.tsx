@@ -4,7 +4,10 @@ import { formatBRL, statusLabel, type OrdemServico } from "@/lib/os-storage";
 
 export function DashboardTab() {
   const [items, setItems] = useState<OrdemServico[]>([]);
-  useEffect(() => { osDB.list().then(setItems); }, []);
+  useEffect(() => {
+    const unsub = osDB.subscribe(setItems);
+    return () => unsub();
+  }, []);
 
   const fila = items.filter((i) => i.status === "fila");
   const consertando = items.filter((i) => i.status === "consertando");

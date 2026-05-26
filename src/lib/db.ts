@@ -59,12 +59,14 @@ function cleanOS(o: Partial<OrdemServico>): Record<string, any> {
 }
 
 export const osDB = {
-  async list(): Promise<OrdemServico[]> {
-    const snap = await getDocs(query(osCol(), orderBy("criadoEm", "desc")));
-    return snap.docs.map((d) => fromOS(d.id, d.data()));
+  subscribe(callback: (ordens: OrdemServico[]) => void) {
+    const q = query(osCol(), orderBy("criadoEm", "desc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map((d) => fromOS(d.id, d.data())));
+    });
   },
   async create(o: Partial<OrdemServico>) {
-    await addDoc(osCol(), { ...cleanOS(o), criadoEm: Date.now(), _serverTs: serverTimestamp() });
+    await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
   },
   async update(id: string, o: Partial<OrdemServico>) {
     await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
@@ -132,6 +134,12 @@ const fromOrc = (id: string, r: any): OrcamentoDB => ({
   criadoEm: tsToMillis(r.criadoEm),
 });
 export const orcDB = {
+  subscribe(callback: (orcs: OrcamentoDB[]) => void) {
+    const q = query(orcCol(), orderBy("criadoEm", "desc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map((d) => fromOrc(d.id, d.data())));
+    });
+  },
   async list(): Promise<OrcamentoDB[]> {
     const snap = await getDocs(query(orcCol(), orderBy("criadoEm", "desc")));
     return snap.docs.map((d) => fromOrc(d.id, d.data()));
@@ -143,7 +151,7 @@ export const orcDB = {
       formaPagamento: o.formaPagamento ?? null,
       status: o.status, pago: !!o.pago,
       observacoes: o.observacoes ?? null,
-      criadoEm: Date.now(),
+      criadoEm: serverTimestamp(),
     });
   },
   async setStatus(id: string, status: OrcStatus) {

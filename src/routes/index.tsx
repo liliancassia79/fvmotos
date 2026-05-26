@@ -151,11 +151,11 @@ function OSView() {
   const [catalogo, setCatalogo] = useState<ServicoDB[]>([]);
   const [saving, setSaving] = useState(false);
 
-  async function refresh() {
-    try { setItems(await osDB.list()); } catch (e) { console.error(e); }
-  }
   useEffect(() => {
-    refresh();
+    const unsub = osDB.subscribe(setItems);
+    return () => unsub();
+  }, []);
+  useEffect(() => {
     catDB.list().then(setCatalogo).catch(console.error);
   }, []);
 
@@ -200,7 +200,6 @@ function OSView() {
         await osDB.create({ ...rest, valor, formaPagamento, status: "fila" });
       }
       resetForm();
-      await refresh();
     } catch (e) { console.error(e); alert("Erro ao salvar"); }
     finally { setSaving(false); }
   }
@@ -223,7 +222,6 @@ function OSView() {
     const it = items.find((x) => x.id === id); if (!it) return;
     const novo = nextStatus(it.status);
     await osDB.update(id, { status: novo, atualizadoEm: Date.now(), finalizadoEm: novo === "pronta" ? Date.now() : it.finalizadoEm });
-    refresh();
   }
 
   async function voltar(id: string) {
@@ -231,14 +229,12 @@ function OSView() {
     const i = statusOrder.indexOf(it.status);
     const novo = statusOrder[Math.max(0, i - 1)];
     await osDB.update(id, { status: novo, atualizadoEm: Date.now() });
-    refresh();
   }
 
   async function remove(id: string) {
     if (!confirm("Remover esta O.S.?")) return;
     await osDB.remove(id);
     if (editingId === id) resetForm();
-    refresh();
   }
 
 
@@ -325,7 +321,6 @@ function OSView() {
                   setForm((f) => ({ ...f, fotos }));
                   if (editingId) {
                     await osDB.update(editingId, { fotos, atualizadoEm: Date.now() });
-                    refresh();
                   }
                 }}
               />
@@ -366,7 +361,7 @@ function OSView() {
                     if (isNaN(n) || n < 0) { alert("Valor inválido"); return; }
                     patch.valor = n;
                   }
-                  await osDB.update(id, patch); refresh();
+                  await osDB.update(id, patch);
                 }} />
 
             ))}
