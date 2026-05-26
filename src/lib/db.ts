@@ -1,6 +1,7 @@
 import {
   collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, orderBy, serverTimestamp, Timestamp,
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp,
+  type Query, type QuerySnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { OrdemServico, OSStatus } from "./os-storage";
@@ -219,3 +220,58 @@ export const categoriaLabel: Record<ServicoCategoria, string> = {
 export const orcStatusLabel: Record<OrcStatus, string> = {
   rascunho: "Rascunho", enviado: "Enviado", aprovado: "Aprovado", recusado: "Recusado",
 };
+
+// =====================================================
+// Realtime subscriptions + add offline-aware (padrão novo)
+// callback recebe a lista; cada item tem `offline: true`
+// quando os dados vieram do cache local (sem servidor).
+// =====================================================
+
+type AddResult = { success: true; offline?: boolean } | { success: false; offline: true; error: unknown };
+
+function makeAdd(colName: string) {
+  return async (dados: Record<string, any>): Promise<AddResult> => {
+    try {
+      await addDoc(collection(db, colName), { ...dados, createdAt: Date.now() });
+      return { success: true };
+    } catch (e) {
+      // Firestore com persistência offline normalmente NÃO joga aqui (a escrita
+      // fica pendente e sincroniza depois). Esse catch cobre erros reais (regras,
+      // payload inválido) — devolve offline:true pra UI mostrar toast.
+      console.warn(`[${colName}] add falhou`, e);
+      return { success: false, offline: true, error: e };
+    }
+  };
+}
+
+function makeSubscribe(colName: string, orderField = "createdAt") {
+  return (callback: (lista: any[]) => void) => {
+    const q: Query = query(collection(db, colName), orderBy(orderField, "desc"));
+    return onSnapshot(
+      q,
+      (snap: QuerySnapshot) => {
+        const lista = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          offline: snap.metadata.fromCache,
+        }));
+        callback(lista);
+      },
+      (err) => console.error(`[${colName}] subscribe erro`, err),
+    );
+  };
+}
+
+export const addCliente   = makeAdd("clientes");
+export const addMoto      = makeAdd("motos");
+export const addOS        = makeAdd("ordens_servico");
+export const addServico   = makeAdd("servicos_catalogo");
+export const addOrcamento = makeAdd("orcamentos");
+export const addAgendamento = makeAdd("agendamentos");
+
+export const subscribeClientes      = makeSubscribe("clientes",          "criadoEm");
+export const subscribeMotos         = makeSubscribe("motos",             "createdAt");
+export const subscribeOS            = makeSubscribe("ordens_servico",    "criadoEm");
+export const subscribeServicos      = makeSubscribe("servicos_catalogo", "nome");
+export const subscribeOrcamentos    = makeSubscribe("orcamentos",        "criadoEm");
+export const subscribeAgendamentos  = makeSubscribe("agendamentos",      "dataHora");
