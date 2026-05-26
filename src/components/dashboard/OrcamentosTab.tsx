@@ -55,16 +55,16 @@ export function OrcamentosTab() {
         formaPagamento: formaPagamento || undefined,
         status: "rascunho", pago: false, observacoes: obs || undefined,
       });
-      reset(); await reload();
+      reset();
     } catch (err) { alert((err as Error).message); }
     finally { setBusy(false); }
   }
 
-  async function setStatus(id: string, status: OrcStatus) { await orcDB.setStatus(id, status); reload(); }
-  async function togglePago(o: OrcamentoDB) { await orcDB.setPago(o.id, !o.pago); reload(); }
+  async function setStatus(id: string, status: OrcStatus) { await orcDB.setStatus(id, status); }
+  async function togglePago(o: OrcamentoDB) { await orcDB.setPago(o.id, !o.pago); }
   async function remove(id: string) {
     if (!confirm("Remover orçamento?")) return;
-    await orcDB.remove(id); reload();
+    await orcDB.remove(id);
   }
   async function enviarWhats(o: OrcamentoDB) {
     if (!o.celular) { alert("Cliente sem celular"); return; }
