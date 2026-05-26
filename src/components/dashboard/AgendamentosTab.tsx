@@ -24,11 +24,11 @@ export function AgendamentosTab() {
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
 
-  async function reload() {
-    setItems(await agDB.list());
-    setCatalogo(await catDB.list());
-  }
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    const unsub1 = agDB.subscribe(setItems);
+    const unsub2 = catDB.subscribe(setCatalogo);
+    return () => { unsub1(); unsub2(); };
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
