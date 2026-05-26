@@ -26,8 +26,10 @@ export function CatalogoTab() {
   const [categoria, setCategoria] = useState<ServicoCategoria>("revisao");
   const [busy, setBusy] = useState(false);
 
-  async function reload() { setItems(await catDB.list()); }
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    const unsub = catDB.subscribe(setItems);
+    return () => unsub();
+  }, []);
 
   async function add(e: FormEvent) {
     e.preventDefault();
