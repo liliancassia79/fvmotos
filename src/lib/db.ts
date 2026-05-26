@@ -178,16 +178,18 @@ const fromAg = (id: string, r: any): AgendamentoDB => ({
   confirmado: !!r.confirmado, criadoEm: tsToMillis(r.criadoEm),
 });
 export const agDB = {
-  async list(): Promise<AgendamentoDB[]> {
-    const snap = await getDocs(query(agCol(), orderBy("dataHora", "asc")));
-    return snap.docs.map((d) => fromAg(d.id, d.data()));
+  subscribe(callback: (ags: AgendamentoDB[]) => void) {
+    const q = query(agCol(), orderBy("dataHora", "asc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map((d) => fromAg(d.id, d.data())));
+    });
   },
   async create(a: Omit<AgendamentoDB, "id" | "criadoEm">) {
     await addDoc(agCol(), {
       cliente: a.cliente, celular: a.celular ?? null,
       dataHora: a.dataHora, servico: a.servico,
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
-      criadoEm: Date.now(),
+      criadoEm: serverTimestamp(),
     });
   },
   async setConfirmado(id: string, confirmado: boolean) {
@@ -205,11 +207,13 @@ const fromSrv = (id: string, r: any): ServicoDB => ({
   categoria: (r.categoria ?? "revisao") as ServicoCategoria,
 });
 export const catDB = {
-  async list(): Promise<ServicoDB[]> {
-    const snap = await getDocs(catCol());
-    const items = snap.docs.map((d) => fromSrv(d.id, d.data()));
-    return items.sort((a, b) =>
-      a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
+  subscribe(callback: (servicos: ServicoDB[]) => void) {
+    return onSnapshot(catCol(), (snap) => {
+      const items = snap.docs.map((d) => fromSrv(d.id, d.data()));
+      items.sort((a, b) =>
+        a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
+      callback(items);
+    });
   },
   async create(s: Omit<ServicoDB, "id">) {
     await addDoc(catCol(), { nome: s.nome, preco: s.preco, categoria: s.categoria });

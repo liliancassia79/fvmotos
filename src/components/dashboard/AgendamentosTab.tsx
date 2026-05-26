@@ -24,11 +24,11 @@ export function AgendamentosTab() {
   const [form, setForm] = useState(empty);
   const [busy, setBusy] = useState(false);
 
-  async function reload() {
-    setItems(await agDB.list());
-    setCatalogo(await catDB.list());
-  }
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    const unsub1 = agDB.subscribe(setItems);
+    const unsub2 = catDB.subscribe(setCatalogo);
+    return () => { unsub1(); unsub2(); };
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -42,15 +42,15 @@ export function AgendamentosTab() {
         servico: servicoFinal, observacoes: form.observacoes || undefined,
         confirmado: false,
       });
-      setForm(empty); await reload();
+      setForm(empty);
     } catch (err) { alert((err as Error).message); }
     finally { setBusy(false); }
   }
 
-  async function toggleConfirm(a: AgendamentoDB) { await agDB.setConfirmado(a.id, !a.confirmado); reload(); }
+  async function toggleConfirm(a: AgendamentoDB) { await agDB.setConfirmado(a.id, !a.confirmado); }
   async function remove(id: string) {
     if (!confirm("Remover agendamento?")) return;
-    await agDB.remove(id); reload();
+    await agDB.remove(id);
   }
   function enviarConfirmacao(a: AgendamentoDB) {
     if (!a.celular) { alert("Cliente sem celular"); return; }
