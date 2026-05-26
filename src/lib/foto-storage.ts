@@ -1,75 +1,69 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { openDB, type IDBPDatabase } from "idb";
 import { storage } from "./firebase";
 
 const ROOT = "moto-fotos";
-const DB_NAME = "fv-motos-fotos-queue";
-const STORE = "pending";
+const DB_NAME = "foto-queue";
+const STORE = "uploads";
 
-// ---------- IndexedDB (fila de upload offline) ----------
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE, { keyPath: "id" });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+const getDB = (): Promise<IDBPDatabase> =>
+  openDB(DB_NAME, 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+      }
+    },
   });
-}
 
-async function idbPut(item: { id: string; osId: string; blob: Blob; type: string }) {
-  const db = await openDB();
-  return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(item);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
+/** Upload genérico — tenta enviar, se falhar enfileira no IndexedDB. */
+export const uploadFoto = async (file: File, path: string): Promise<string> => {
+  try {
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file, {
+      contentType: file.type || "image/jpeg",
+      cacheControl: "public,max-age=31536000",
+    });
+    return await getDownloadURL(storageRef);
+  } catch (e) {
+    const db = await getDB();
+    await db.add(STORE, { file, path, timestamp: Date.now() });
+    console.warn("[fotos] upload offline — enfileirado", e);
+    throw new Error("OFFLINE_QUEUE");
+  }
+};
 
-async function idbAll(): Promise<Array<{ id: string; osId: string; blob: Blob; type: string }>> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, "readonly");
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-}
+/** Reprocessa a fila — chamado quando volta a internet. */
+export const processQueue = async (): Promise<void> => {
+  const db = await getDB();
+  const all = await db.getAll(STORE);
+  for (const item of all as Array<{ id: number; file: File; path: string }>) {
+    try {
+      const storageRef = ref(storage, item.path);
+      await uploadBytes(storageRef, item.file, {
+        contentType: item.file.type || "image/jpeg",
+        cacheControl: "public,max-age=31536000",
+      });
+      await db.delete(STORE, item.id);
+    } catch {
+      // mantém na fila pra próxima tentativa
+      break;
+    }
+  }
+};
 
-async function idbDel(id: string) {
-  const db = await openDB();
-  return new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function doUpload(blob: Blob | File, osId: string, type: string): Promise<string> {
-  const ext = (type.split("/")[1] || "jpg").toLowerCase();
-  const path = `${ROOT}/${osId}/${crypto.randomUUID()}.${ext}`;
-  const r = ref(storage, path);
-  await uploadBytes(r, blob, { contentType: type, cacheControl: "public,max-age=31536000" });
-  return getDownloadURL(r);
-}
+// ---------- API usada pelo app (FotosUpload) ----------
 
 export async function uploadFotoMoto(file: File, osId: string): Promise<string> {
-  const type = file.type || "image/jpeg";
+  const ext = (file.type.split("/")[1] || "jpg").toLowerCase();
+  const path = `${ROOT}/${osId}/${crypto.randomUUID()}.${ext}`;
   try {
-    return await doUpload(file, osId, type);
+    return await uploadFoto(file, path);
   } catch (e) {
-    // Sem rede: guarda no IndexedDB e devolve URL local temporária
-    const id = crypto.randomUUID();
-    try {
-      await idbPut({ id, osId, blob: file, type });
-      console.warn("[fotos] upload offline — enfileirado para retry", e);
-    } catch (err) {
-      console.error("[fotos] falha ao enfileirar offline", err);
+    if ((e as Error).message === "OFFLINE_QUEUE") {
+      // Mostra preview local imediato; sobe quando voltar a rede
+      return URL.createObjectURL(file);
     }
-    scheduleFlush();
-    return URL.createObjectURL(file);
+    throw e;
   }
 }
 
@@ -87,33 +81,8 @@ export async function removerFotoMoto(url: string): Promise<void> {
   try { await deleteObject(ref(storage, path)); } catch (e) { console.warn("removerFoto", e); }
 }
 
-// ---------- Retry da fila ----------
-let flushing = false;
-async function flushQueue() {
-  if (flushing) return;
-  flushing = true;
-  try {
-    const pending = await idbAll();
-    for (const item of pending) {
-      try {
-        await doUpload(item.blob, item.osId, item.type);
-        await idbDel(item.id);
-      } catch (e) {
-        console.warn("[fotos] retry falhou, mantendo na fila", e);
-        break;
-      }
-    }
-  } finally {
-    flushing = false;
-  }
-}
-
-function scheduleFlush() {
-  if (typeof window === "undefined") return;
-  if (navigator.onLine) setTimeout(flushQueue, 2000);
-}
-
+// ---------- Retry automático ----------
 if (typeof window !== "undefined") {
-  window.addEventListener("online", flushQueue);
-  setTimeout(() => { if (navigator.onLine) flushQueue(); }, 4000);
+  window.addEventListener("online", () => { processQueue(); });
+  setTimeout(() => { if (navigator.onLine) processQueue(); }, 4000);
 }
