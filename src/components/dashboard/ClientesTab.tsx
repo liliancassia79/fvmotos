@@ -74,26 +74,55 @@ export function ClientesTab() {
         {filtrados.length === 0 ? (
           <Empty>Nenhum cliente cadastrado</Empty>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {filtrados.map((c) => (
-              <article key={c.id} className="rounded-lg border border-border bg-card p-4">
-                <h4 className="font-display font-semibold text-sm">{c.nome}</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">{c.celular}</p>
-                {c.email && <p className="text-xs text-muted-foreground mt-1">{c.email}</p>}
-                {c.observacoes && <p className="text-xs text-muted-foreground mt-2 italic">{c.observacoes}</p>}
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {c.celular && (
-                    <a href={whatsappLink(c.celular, `Olá ${c.nome}, aqui é da FV Motos.`)}
-                      target="_blank" rel="noreferrer"
-                      className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">WhatsApp</a>
-                  )}
-                  <button onClick={() => editar(c)} className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">Editar</button>
-                  <button onClick={() => remove(c.id)} className="rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted">Remover</button>
-                </div>
-              </article>
-            ))}
+          <div className="overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left font-medium">Nome</th>
+                  <th className="px-3 py-2 text-left font-medium">Celular</th>
+                  <th className="px-3 py-2 text-left font-medium">Email</th>
+                  <th className="px-3 py-2 text-right font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((c) => (
+                  <tr key={c.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="px-3 py-2 font-medium">{c.nome}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{c.celular || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{c.email || "—"}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end gap-1.5">
+                        {c.celular && (
+                          <a
+                            href={whatsappLink(c.celular, `Olá ${c.nome}, aqui é da FV Motos.`)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted"
+                          >
+                            WhatsApp
+                          </a>
+                        )}
+                        <button
+                          onClick={() => editar(c)}
+                          className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => remove(c.id)}
+                          className="rounded-md border border-border px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
+
       </div>
     </div>
   );
