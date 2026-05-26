@@ -37,7 +37,7 @@ export function CatalogoTab() {
     setBusy(true);
     try {
       await catDB.create({ nome, categoria, preco: Number(preco.replace(",", ".")) || 0 });
-      setNome(""); setPreco(""); await reload();
+      setNome(""); setPreco("");
     } catch (err) { alert((err as Error).message); }
     finally { setBusy(false); }
   }
@@ -49,13 +49,12 @@ export function CatalogoTab() {
   }
 
   async function remove(id: string) {
-    await catDB.remove(id); reload();
+    await catDB.remove(id);
   }
 
   async function seedPadrao() {
     if (!confirm("Adicionar serviços padrão ao catálogo?")) return;
     for (const s of SEED) await catDB.create(s);
-    reload();
   }
 
   const grupos = useMemo(() => {
