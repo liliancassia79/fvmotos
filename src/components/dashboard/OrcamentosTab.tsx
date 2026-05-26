@@ -20,11 +20,11 @@ export function OrcamentosTab() {
   const [novoValor, setNovoValor] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function reload() {
-    setItems(await orcDB.list());
-    setCatalogo(await catDB.list());
-  }
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    const unsub1 = orcDB.subscribe(setItems);
+    const unsub2 = catDB.subscribe(setCatalogo);
+    return () => { unsub1(); unsub2(); };
+  }, []);
 
   const grupos = useMemo(() => {
     const g: Record<string, ServicoDB[]> = {};
