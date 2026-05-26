@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { osDB, orcDB } from "@/lib/db";
-import { formatBRL } from "@/lib/os-storage";
+import { osDB, orcDB, type OrcamentoDB } from "@/lib/db";
+import { formatBRL, type OrdemServico } from "@/lib/os-storage";
 import { formaPagamentoLabel } from "@/lib/pagamento";
 import { Empty } from "./ui-bits";
 
@@ -15,50 +15,14 @@ type Pagamento = {
 };
 
 export function FaturamentoTab() {
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [ordens, setOrdens] = useState<OrdemServico[]>([]);
+  const [orcs, setOrcs] = useState<OrcamentoDB[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let alive = true;
-    async function load() {
-      try {
-        const [ordens, orcs] = await Promise.all([osDB.list(), orcDB.list()]);
-        const lista: Pagamento[] = [];
-        for (const o of ordens) {
-          if (o.pago && (o.valor ?? 0) > 0) {
-            lista.push({
-              id: `os-${o.id}`,
-              origem: "os",
-              cliente: o.cliente,
-              descricao: `O.S. ${o.modelo} · ${o.placa}`,
-              valor: o.valor ?? 0,
-              formaPagamento: o.formaPagamento,
-              pagoEm: o.finalizadoEm ?? o.atualizadoEm ?? o.criadoEm,
-            });
-          }
-        }
-        for (const o of orcs) {
-          if (o.pago && (o.total ?? 0) > 0) {
-            lista.push({
-              id: `orc-${o.id}`,
-              origem: "orcamento",
-              cliente: o.cliente,
-              descricao: "Orçamento aprovado",
-              valor: o.total ?? 0,
-              formaPagamento: o.formaPagamento,
-              pagoEm: o.criadoEm,
-            });
-          }
-        }
-        lista.sort((a, b) => b.pagoEm - a.pagoEm);
-        if (alive) setPagamentos(lista);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    }
-    load();
-    const t = setInterval(load, 15000);
-    return () => { alive = false; clearInterval(t); };
+    const unsub1 = osDB.subscribe((data) => { setOrdens(data); setLoading(false); });
+    const unsub2 = orcDB.subscribe((data) => { setOrcs(data); setLoading(false); });
+    return () => { unsub1(); unsub2(); };
   }, []);
 
   const stats = useMemo(() => {

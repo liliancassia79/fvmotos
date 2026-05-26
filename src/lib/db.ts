@@ -134,6 +134,12 @@ const fromOrc = (id: string, r: any): OrcamentoDB => ({
   criadoEm: tsToMillis(r.criadoEm),
 });
 export const orcDB = {
+  subscribe(callback: (orcs: OrcamentoDB[]) => void) {
+    const q = query(orcCol(), orderBy("criadoEm", "desc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map((d) => fromOrc(d.id, d.data())));
+    });
+  },
   async list(): Promise<OrcamentoDB[]> {
     const snap = await getDocs(query(orcCol(), orderBy("criadoEm", "desc")));
     return snap.docs.map((d) => fromOrc(d.id, d.data()));
@@ -145,7 +151,7 @@ export const orcDB = {
       formaPagamento: o.formaPagamento ?? null,
       status: o.status, pago: !!o.pago,
       observacoes: o.observacoes ?? null,
-      criadoEm: Date.now(),
+      criadoEm: serverTimestamp(),
     });
   },
   async setStatus(id: string, status: OrcStatus) {
