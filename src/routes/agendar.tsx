@@ -74,8 +74,7 @@ function AgendarPage() {
     setErro(null);
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  function handleSubmit(e: FormEvent) {
     setErro(null);
     setSucesso(false);
 
@@ -87,44 +86,28 @@ function AgendarPage() {
       !form.servico ||
       !form.valor
     ) {
+      e.preventDefault(); // Impede o envio se faltar campos
       setErro("Preencha todos os campos obrigatórios.");
       return;
     }
 
     const whatsappLimpo = form.whatsapp.replace(/\D/g, "");
     if (whatsappLimpo.length < 10) {
+      e.preventDefault(); // Impede o envio se telefone for inválido
       setErro("Informe um número de WhatsApp válido com DDD.");
       return;
     }
 
-    const payload = {
-      nome: form.nome.trim(),
-      whatsapp: form.whatsapp,
-      dataAgendamento: form.dataAgendamento,
-      horario: form.horario,
-      servico: form.servico,
-      valor: form.valor,
-    };
-
+    // Se a validação passou, NÃO chamamos e.preventDefault()
+    // O navegador vai enviar o formulário nativamente para o iframe oculto!
     setEnviando(true);
-    try {
-      const formData = new URLSearchParams();
-      Object.entries(payload).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-
-      await fetch(`${URL_PLANILHA}?${formData.toString()}`, {
-        method: "GET",
-        mode: "no-cors",
-      });
-
+    
+    // Limpamos o formulário e mostramos sucesso após 2 segundos
+    setTimeout(() => {
       setSucesso(true);
       setForm(emptyForm);
-    } catch {
-      setErro("Não foi possível enviar o agendamento. Tente novamente.");
-    } finally {
       setEnviando(false);
-    }
+    }, 2000);
   }
 
   return (
@@ -159,7 +142,10 @@ function AgendarPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Iframe oculto para receber a resposta do Google sem sair da página */}
+          <iframe name="hidden_iframe" id="hidden_iframe" style={{ display: "none" }}></iframe>
+
+          <form action={URL_PLANILHA} method="GET" target="hidden_iframe" onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="nome" className="flex items-center gap-2 text-sm font-medium">
                 <User className="w-4 h-4 text-muted-foreground" />
