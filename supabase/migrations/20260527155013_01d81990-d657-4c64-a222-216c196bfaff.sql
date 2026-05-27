@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "moto-fotos write" ON storage.objects;
