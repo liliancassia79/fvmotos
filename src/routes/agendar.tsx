@@ -48,6 +48,12 @@ function mascaraTelefone(v: string): string {
   return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
 }
 
+function formatarMoeda(v: string): string {
+  const nums = v.replace(/\D/g, "");
+  const val = Number(nums) / 100;
+  return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export const Route = createFileRoute("/agendar")({
   component: AgendarPage,
   head: () => ({
