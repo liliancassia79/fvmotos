@@ -110,15 +110,11 @@ function AgendarPage() {
 
     setEnviando(true);
     try {
-      const res = await fetch(URL_PLANILHA, {
+      await fetch(URL_PLANILHA, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        mode: "no-cors",
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        throw new Error(`Erro ${res.status}: ${res.statusText}`);
-      }
 
       setSucesso(true);
       setForm(emptyForm);
