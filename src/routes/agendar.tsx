@@ -108,13 +108,15 @@ function AgendarPage() {
 
     setEnviando(true);
     try {
+      const formData = new URLSearchParams();
+      Object.entries(payload).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+
       await fetch(URL_PLANILHA, {
         method: "POST",
         mode: "no-cors",
-        headers: {
-          "Content-Type": "text/plain",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       setSucesso(true);
