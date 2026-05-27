@@ -3,7 +3,7 @@ import { useState, type FormEvent, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
+import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays, Banknote } from "lucide-react";
 
 // Cole aqui a URL do seu Google Apps Script depois de publicado
 const URL_PLANILHA =
@@ -15,6 +15,7 @@ interface FormData {
   dataAgendamento: string;
   horario: string;
   servico: string;
+  valor: string;
 }
 
 const emptyForm: FormData = {
@@ -23,6 +24,7 @@ const emptyForm: FormData = {
   dataAgendamento: "",
   horario: "",
   servico: "",
+  valor: "",
 };
 
 const servicos = [
@@ -46,6 +48,12 @@ function mascaraTelefone(v: string): string {
   return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
 }
 
+function formatarMoeda(v: string): string {
+  const nums = v.replace(/\D/g, "");
+  const val = Number(nums) / 100;
+  return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export const Route = createFileRoute("/agendar")({
   component: AgendarPage,
   head: () => ({
@@ -66,6 +74,8 @@ function AgendarPage() {
     const { name, value } = e.target;
     if (name === "whatsapp") {
       setForm((prev) => ({ ...prev, [name]: mascaraTelefone(value) }));
+    } else if (name === "valor") {
+      setForm((prev) => ({ ...prev, [name]: formatarMoeda(value) }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
@@ -95,6 +105,7 @@ function AgendarPage() {
       dataAgendamento: form.dataAgendamento,
       horario: form.horario,
       servico: form.servico,
+      valor: form.valor,
     };
 
     setEnviando(true);
@@ -246,6 +257,25 @@ function AgendarPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Valor Pago */}
+            <div className="space-y-2">
+              <Label htmlFor="valor" className="flex items-center gap-2 text-sm font-medium">
+                <Banknote className="w-4 h-4 text-muted-foreground" />
+                Valor Pago
+              </Label>
+              <Input
+                id="valor"
+                name="valor"
+                type="text"
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={form.valor}
+                onChange={handleChange}
+                disabled={enviando}
+                className="bg-background"
+              />
             </div>
 
             {/* Botão */}
