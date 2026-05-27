@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
 
 // Cole aqui a URL do seu Google Apps Script depois de publicado
-const URL_PLANILHA = "https://script.google.com/macros/s/SEU_SCRIPT_ID/exec";
+const URL_PLANILHA =
+  "https://script.google.com/macros/s/AKfycbxrEDzXPr4wHEL8g2O7Lagb7UsvuqFVu_LbYKN9pMjOCJ8DrzQ-y9_6z1xxSlwOrJ-w/exec";
 
 interface FormData {
   nome: string;
@@ -125,9 +126,7 @@ function AgendarPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-4">
             <CalendarDays className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">
-            Agendar Serviço
-          </h1>
+          <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Agendar Serviço</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Preencha o formulário abaixo e entraremos em contato pelo WhatsApp para confirmar.
           </p>
@@ -139,9 +138,7 @@ function AgendarPage() {
             <div className="mb-6 flex items-start gap-3 rounded-xl bg-status-ready/10 border border-status-ready/20 p-4">
               <CheckCircle2 className="w-5 h-5 text-status-ready shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-status-ready-foreground">
-                  Agendamento realizado com sucesso!
-                </p>
+                <p className="text-sm font-semibold text-status-ready-foreground">Agendamento realizado com sucesso!</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Entraremos em contato pelo WhatsApp para confirmar seu horário.
                 </p>
@@ -252,11 +249,7 @@ function AgendarPage() {
             </div>
 
             {/* Botão */}
-            <Button
-              type="submit"
-              disabled={enviando}
-              className="w-full h-11 text-sm font-semibold"
-            >
+            <Button type="submit" disabled={enviando} className="w-full h-11 text-sm font-semibold">
               {enviando ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -270,9 +263,7 @@ function AgendarPage() {
         </div>
 
         {/* Rodapé */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          FV Motos · Oficina de Motocicletas
-        </p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">FV Motos · Oficina de Motocicletas</p>
       </div>
     </div>
   );
