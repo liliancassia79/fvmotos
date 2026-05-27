@@ -145,7 +145,7 @@ function OSView() {
   const [items, setItems] = useState<OrdemServico[]>([]);
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [tempId, setTempId] = useState(() => crypto.randomUUID());
+  const [tempId, setTempId] = useState(() => Math.random().toString(36).substring(2, 10));
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
   const [catalogo, setCatalogo] = useState<ServicoDB[]>([]);
@@ -185,7 +185,7 @@ function OSView() {
     return g;
   }, [filtered]);
 
-  function resetForm() { setForm(empty); setEditingId(null); setTempId(crypto.randomUUID()); }
+  function resetForm() { setForm(empty); setEditingId(null); setTempId(Math.random().toString(36).substring(2, 10)); }
 
   async function submit(e: FormEvent) {
     e.preventDefault();

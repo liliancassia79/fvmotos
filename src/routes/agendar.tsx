@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays, DollarSign } from "lucide-react";
 
 const URL_PLANILHA =
-  "https://script.google.com/macros/s/AKfycbxrEDzXPr4wHEL8g2O7Lagb7UsvuqFVu_LbYKN9pMjOCJ8DrzQ-y9_6z1xxSlwOrJ-w/exec";
+  "https://script.google.com/macros/s/AKfycbwViFwlxTZO9S81N2_o_EmcvcRyn-azzkmquRjguyWUcOeLFRKm_J29d23KIigI00Cn/exec";
 
 interface FormData {
   nome: string;
@@ -113,10 +113,9 @@ function AgendarPage() {
         formData.append(key, value as string);
       });
 
-      await fetch(URL_PLANILHA, {
-        method: "POST",
+      await fetch(`${URL_PLANILHA}?${formData.toString()}`, {
+        method: "GET",
         mode: "no-cors",
-        body: formData,
       });
 
       setSucesso(true);
