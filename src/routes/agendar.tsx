@@ -24,6 +24,7 @@ const emptyForm: FormData = {
   dataAgendamento: "",
   horario: "",
   servico: "",
+  valor: "",
 };
 
 const servicos = [
