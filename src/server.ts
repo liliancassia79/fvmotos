@@ -1,4 +1,6 @@
-import "./lib/error-capture";
+import * as errorCapture from "./lib/error-capture";
+// Uma chamada boba apenas para forçar o compilador a incluir o arquivo no build
+if (false) { console.log(errorCapture); }
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
