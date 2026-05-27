@@ -15,6 +15,7 @@ interface FormData {
   dataAgendamento: string;
   horario: string;
   servico: string;
+  valor: string;
 }
 
 const emptyForm: FormData = {
