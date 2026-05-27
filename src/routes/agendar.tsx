@@ -3,7 +3,7 @@ import { useState, type FormEvent, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays } from "lucide-react";
+import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays, Banknote } from "lucide-react";
 
 // Cole aqui a URL do seu Google Apps Script depois de publicado
 const URL_PLANILHA =
