@@ -105,6 +105,7 @@ function AgendarPage() {
       dataAgendamento: form.dataAgendamento,
       horario: form.horario,
       servico: form.servico,
+      valor: form.valor,
     };
 
     setEnviando(true);
