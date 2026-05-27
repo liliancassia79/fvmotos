@@ -74,6 +74,8 @@ function AgendarPage() {
     const { name, value } = e.target;
     if (name === "whatsapp") {
       setForm((prev) => ({ ...prev, [name]: mascaraTelefone(value) }));
+    } else if (name === "valor") {
+      setForm((prev) => ({ ...prev, [name]: formatarMoeda(value) }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
