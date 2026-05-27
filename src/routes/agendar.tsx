@@ -111,6 +111,9 @@ function AgendarPage() {
       await fetch(URL_PLANILHA, {
         method: "POST",
         mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain",
+        },
         body: JSON.stringify(payload),
       });
 
