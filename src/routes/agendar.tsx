@@ -3,9 +3,8 @@ import { useState, type FormEvent, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays, Banknote } from "lucide-react";
+import { Calendar, Clock, User, Phone, Wrench, CheckCircle2, Loader2, CalendarDays, DollarSign } from "lucide-react";
 
-// Cole aqui a URL do seu Google Apps Script depois de publicado
 const URL_PLANILHA =
   "https://script.google.com/macros/s/AKfycbxrEDzXPr4wHEL8g2O7Lagb7UsvuqFVu_LbYKN9pMjOCJ8DrzQ-y9_6z1xxSlwOrJ-w/exec";
 
@@ -48,12 +47,6 @@ function mascaraTelefone(v: string): string {
   return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
 }
 
-function formatarMoeda(v: string): string {
-  const nums = v.replace(/\D/g, "");
-  const val = Number(nums) / 100;
-  return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 export const Route = createFileRoute("/agendar")({
   component: AgendarPage,
   head: () => ({
@@ -74,8 +67,6 @@ function AgendarPage() {
     const { name, value } = e.target;
     if (name === "whatsapp") {
       setForm((prev) => ({ ...prev, [name]: mascaraTelefone(value) }));
-    } else if (name === "valor") {
-      setForm((prev) => ({ ...prev, [name]: formatarMoeda(value) }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
@@ -88,7 +79,14 @@ function AgendarPage() {
     setErro(null);
     setSucesso(false);
 
-    if (!form.nome.trim() || !form.whatsapp.trim() || !form.dataAgendamento || !form.horario || !form.servico) {
+    if (
+      !form.nome.trim() ||
+      !form.whatsapp.trim() ||
+      !form.dataAgendamento ||
+      !form.horario ||
+      !form.servico ||
+      !form.valor
+    ) {
       setErro("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -118,8 +116,8 @@ function AgendarPage() {
 
       setSucesso(true);
       setForm(emptyForm);
-    } catch (err) {
-      setErro((err as Error).message || "Não foi possível enviar o agendamento. Tente novamente.");
+    } catch {
+      setErro("Não foi possível enviar o agendamento. Tente novamente.");
     } finally {
       setEnviando(false);
     }
@@ -128,18 +126,16 @@ function AgendarPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-lg">
-        {/* Cabeçalho */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-4">
             <CalendarDays className="w-7 h-7 text-primary" />
           </div>
           <h1 className="text-3xl font-display font-bold tracking-tight text-foreground">Agendar Serviço</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Preencha o formulário abaixo e entraremos em contato pelo WhatsApp para confirmar.
+            Preencha o formulário abaixo para registrar o agendamento direto na planilha.
           </p>
         </div>
 
-        {/* Card do formulário */}
         <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-sm">
           {sucesso && (
             <div className="mb-6 flex items-start gap-3 rounded-xl bg-status-ready/10 border border-status-ready/20 p-4">
@@ -147,7 +143,7 @@ function AgendarPage() {
               <div>
                 <p className="text-sm font-semibold text-status-ready-foreground">Agendamento realizado com sucesso!</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Entraremos em contato pelo WhatsApp para confirmar seu horário.
+                  Os dados foram enviados para a sua planilha do Google Sheets.
                 </p>
               </div>
             </div>
@@ -160,7 +156,6 @@ function AgendarPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Nome Completo */}
             <div className="space-y-2">
               <Label htmlFor="nome" className="flex items-center gap-2 text-sm font-medium">
                 <User className="w-4 h-4 text-muted-foreground" />
@@ -178,7 +173,6 @@ function AgendarPage() {
               />
             </div>
 
-            {/* WhatsApp */}
             <div className="space-y-2">
               <Label htmlFor="whatsapp" className="flex items-center gap-2 text-sm font-medium">
                 <Phone className="w-4 h-4 text-muted-foreground" />
@@ -197,7 +191,6 @@ function AgendarPage() {
               />
             </div>
 
-            {/* Data + Horário */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="dataAgendamento" className="flex items-center gap-2 text-sm font-medium">
@@ -232,7 +225,6 @@ function AgendarPage() {
               </div>
             </div>
 
-            {/* Tipo de Serviço */}
             <div className="space-y-2">
               <Label htmlFor="servico" className="flex items-center gap-2 text-sm font-medium">
                 <Wrench className="w-4 h-4 text-muted-foreground" />
@@ -244,7 +236,7 @@ function AgendarPage() {
                 value={form.servico}
                 onChange={handleChange}
                 disabled={enviando}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
               >
                 <option value="">Selecione o serviço...</option>
                 {servicos.map((s) => (
@@ -255,18 +247,20 @@ function AgendarPage() {
               </select>
             </div>
 
-            {/* Valor Pago */}
+            {/* Campo: Valor do Serviço */}
             <div className="space-y-2">
               <Label htmlFor="valor" className="flex items-center gap-2 text-sm font-medium">
-                <Banknote className="w-4 h-4 text-muted-foreground" />
-                Valor Pago
+                <DollarSign className="w-4 h-4 text-muted-foreground" />
+                Valor Cobrado (R$)
               </Label>
               <Input
                 id="valor"
                 name="valor"
-                type="text"
-                inputMode="numeric"
-                placeholder="R$ 0,00"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                placeholder="0,00"
                 value={form.valor}
                 onChange={handleChange}
                 disabled={enviando}
@@ -274,7 +268,6 @@ function AgendarPage() {
               />
             </div>
 
-            {/* Botão */}
             <Button type="submit" disabled={enviando} className="w-full h-11 text-sm font-semibold">
               {enviando ? (
                 <span className="flex items-center gap-2">
@@ -288,7 +281,6 @@ function AgendarPage() {
           </form>
         </div>
 
-        {/* Rodapé */}
         <p className="mt-6 text-center text-xs text-muted-foreground">FV Motos · Oficina de Motocicletas</p>
       </div>
     </div>
