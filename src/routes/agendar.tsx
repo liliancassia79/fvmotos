@@ -259,6 +259,25 @@ function AgendarPage() {
               </select>
             </div>
 
+            {/* Valor Pago */}
+            <div className="space-y-2">
+              <Label htmlFor="valor" className="flex items-center gap-2 text-sm font-medium">
+                <Banknote className="w-4 h-4 text-muted-foreground" />
+                Valor Pago
+              </Label>
+              <Input
+                id="valor"
+                name="valor"
+                type="text"
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={form.valor}
+                onChange={handleChange}
+                disabled={enviando}
+                className="bg-background"
+              />
+            </div>
+
             {/* Botão */}
             <Button type="submit" disabled={enviando} className="w-full h-11 text-sm font-semibold">
               {enviando ? (
