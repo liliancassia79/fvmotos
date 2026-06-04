@@ -63,7 +63,7 @@ export const createOS = createServerFn({ method: "POST" })
       method: "POST",
       body: JSON.stringify({
         fields: {
-          Status: "Aberta",
+          Status: "Orçamento",
           Moto: [data.motoId],
           "Defeito Relatado": data.defeito,
           "Data Entrada": nowIso,
