@@ -9,9 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OsRouteImport } from './routes/os'
+import { Route as NovaOsRouteImport } from './routes/nova-os'
 import { Route as AgendarRouteImport } from './routes/agendar'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OsIdRouteImport } from './routes/os.$id'
 
+const OsRoute = OsRouteImport.update({
+  id: '/os',
+  path: '/os',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NovaOsRoute = NovaOsRouteImport.update({
+  id: '/nova-os',
+  path: '/nova-os',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgendarRoute = AgendarRouteImport.update({
   id: '/agendar',
   path: '/agendar',
@@ -22,35 +35,65 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OsIdRoute = OsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => OsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRoute
+  '/nova-os': typeof NovaOsRoute
+  '/os': typeof OsRouteWithChildren
+  '/os/$id': typeof OsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRoute
+  '/nova-os': typeof NovaOsRoute
+  '/os': typeof OsRouteWithChildren
+  '/os/$id': typeof OsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRoute
+  '/nova-os': typeof NovaOsRoute
+  '/os': typeof OsRouteWithChildren
+  '/os/$id': typeof OsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agendar'
+  fullPaths: '/' | '/agendar' | '/nova-os' | '/os' | '/os/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agendar'
-  id: '__root__' | '/' | '/agendar'
+  to: '/' | '/agendar' | '/nova-os' | '/os' | '/os/$id'
+  id: '__root__' | '/' | '/agendar' | '/nova-os' | '/os' | '/os/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendarRoute: typeof AgendarRoute
+  NovaOsRoute: typeof NovaOsRoute
+  OsRoute: typeof OsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/os': {
+      id: '/os'
+      path: '/os'
+      fullPath: '/os'
+      preLoaderRoute: typeof OsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nova-os': {
+      id: '/nova-os'
+      path: '/nova-os'
+      fullPath: '/nova-os'
+      preLoaderRoute: typeof NovaOsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agendar': {
       id: '/agendar'
       path: '/agendar'
@@ -65,12 +108,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/os/$id': {
+      id: '/os/$id'
+      path: '/$id'
+      fullPath: '/os/$id'
+      preLoaderRoute: typeof OsIdRouteImport
+      parentRoute: typeof OsRoute
+    }
   }
 }
+
+interface OsRouteChildren {
+  OsIdRoute: typeof OsIdRoute
+}
+
+const OsRouteChildren: OsRouteChildren = {
+  OsIdRoute: OsIdRoute,
+}
+
+const OsRouteWithChildren = OsRoute._addFileChildren(OsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendarRoute: AgendarRoute,
+  NovaOsRoute: NovaOsRoute,
+  OsRoute: OsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
