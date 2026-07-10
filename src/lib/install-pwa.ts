@@ -17,15 +17,14 @@ export function useInstallPrompt() {
       window.navigator.standalone === true;
     setInstalled(standalone);
 
-    // Register minimal service worker (required for Android install prompt).
-    // Skip in iframes and on Lovable preview hosts to avoid cache issues.
+    // PWA cache foi desativada — apenas garantir que qualquer SW antigo seja
+    // removido do celular do usuário. O /sw.js atual é um kill-switch que se
+    // desregistra sozinho no activate.
     try {
-      const inIframe = window.self !== window.top;
-      const host = window.location.hostname;
-      const isPreview = host.includes("id-preview--") || host.includes("lovableproject.com");
-      const allowSW = !inIframe && !isPreview;
-      if ("serviceWorker" in navigator && allowSW && window.location.protocol === "https:") {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => r.unregister().catch(() => {}));
+        }).catch(() => {});
       }
     } catch {}
 
