@@ -261,3 +261,26 @@ export const categoriaLabel: Record<ServicoCategoria, string> = {
 export const orcStatusLabel: Record<OrcStatus, string> = {
   rascunho: "Rascunho", enviado: "Enviado", aprovado: "Aprovado", recusado: "Recusado",
 };
+
+// ---------- Backfill Sheets (one-shot) ----------
+let backfillDone = false;
+export async function backfillSheets() {
+  if (backfillDone) return;
+  backfillDone = true;
+  const once = <T,>(col: () => any, from: (id: string, r: any) => T, push: (v: T) => void) =>
+    new Promise<void>((resolve) => {
+      const unsub = onSnapshot(query(col()), (snap) => {
+        snap.docs.forEach((d) => push(from(d.id, d.data())));
+        unsub();
+        resolve();
+      });
+    });
+  try {
+    await Promise.all([
+      once(cliCol, fromCli, (v) => sheetsSync.cliente.upsert(v)),
+      once(osCol, fromOS, (v) => sheetsSync.os.upsert(v as any)),
+      once(orcCol, fromOrc, (v) => sheetsSync.orc.upsert(v)),
+      once(agCol, fromAg, (v) => sheetsSync.ag.upsert(v)),
+    ]);
+  } catch (e) { console.warn("[backfill]", e); }
+}
