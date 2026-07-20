@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { catDB, categoriaLabel, type ServicoDB, type ServicoCategoria } from "@/lib/db";
 import { formatBRL } from "@/lib/os-storage";
 import { Field, Panel, Empty } from "./ui-bits";
@@ -27,34 +28,47 @@ export function CatalogoTab() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const unsub = catDB.subscribe(setItems);
+    const unsub = catDB.subscribe(setItems, () => {
+      toast.error("Não foi possível carregar o catálogo de serviços.");
+    });
     return () => unsub();
   }, []);
+
+  function reportPendingWrite(promise: Promise<void>, message: string) {
+    promise.catch((err) => {
+      toast.error((err as Error).message || message);
+    });
+  }
 
   async function add(e: FormEvent) {
     e.preventDefault();
     if (!nome) return;
     setBusy(true);
-    try {
-      await catDB.create({ nome, categoria, preco: Number(preco.replace(",", ".")) || 0 });
-      setNome(""); setPreco("");
-    } catch (err) { alert((err as Error).message); }
-    finally { setBusy(false); }
+    const write = catDB.create({ nome, categoria, preco: Number(preco.replace(",", ".")) || 0 });
+    reportPendingWrite(write, "Erro ao salvar serviço.");
+    setNome(""); setPreco("");
+    setBusy(false);
+    toast.success("Serviço salvo no aparelho e pronto para sincronizar.");
   }
 
   async function updatePreco(id: string, v: string) {
     const n = Number(v.replace(",", ".")) || 0;
     setItems((p) => p.map((s) => s.id === id ? { ...s, preco: n } : s));
-    await catDB.update(id, { preco: n });
+    reportPendingWrite(catDB.update(id, { preco: n }), "Erro ao atualizar preço.");
+    toast.success("Preço atualizado no aparelho.");
   }
 
   async function remove(id: string) {
-    await catDB.remove(id);
+    reportPendingWrite(catDB.remove(id), "Erro ao remover serviço.");
+    toast.success("Serviço removido do aparelho.");
   }
 
   async function seedPadrao() {
     if (!confirm("Adicionar serviços padrão ao catálogo?")) return;
-    for (const s of SEED) await catDB.create(s);
+    setBusy(true);
+    for (const s of SEED) reportPendingWrite(catDB.create(s), "Erro ao carregar serviços padrão.");
+    setBusy(false);
+    toast.success("Serviços padrão adicionados no aparelho.");
   }
 
   const grupos = useMemo(() => {

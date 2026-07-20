@@ -1,5 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -13,16 +18,20 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+function createFirestore() {
+  if (typeof window === "undefined") return getFirestore(app);
 
-// Cache offline (IndexedDB) — só no browser
-if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db, { forceOwnership: true }).catch((err: any) => {
-    if (err?.code === "failed-precondition") {
-      console.log("[Firestore] Offline: múltiplas abas abertas");
-    } else if (err?.code === "unimplemented") {
-      console.log("[Firestore] Offline: navegador não suporta");
-    }
-  });
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch (err) {
+    console.warn("[Firestore] Usando instância existente", err);
+    return getFirestore(app);
+  }
 }
+
+export const db = createFirestore();
+export const storage = getStorage(app);
