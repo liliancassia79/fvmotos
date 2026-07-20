@@ -1,6 +1,6 @@
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc,
-  query, orderBy, onSnapshot, serverTimestamp, Timestamp, getDoc, getDocs,
+  collection, doc, setDoc, updateDoc, deleteDoc,
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp, getDocFromCache, getDocsFromCache,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { OrdemServico, OSStatus } from "./os-storage";
@@ -74,6 +74,25 @@ function osSheetRow(o: OrdemServico) {
   ];
 }
 
+function reportFirestoreWrite(promise: Promise<unknown>, label: string) {
+  promise.catch((error) => {
+    console.warn(`[firebase] ${label} falhou`, error);
+  });
+}
+
+function scheduleCacheSync(fn: () => Promise<void>) {
+  const run = () => {
+    fn().catch((error) => console.warn("[sheets] sincronização pelo cache falhou", error));
+  };
+
+  if (typeof window === "undefined") {
+    run();
+    return;
+  }
+
+  window.setTimeout(run, 350);
+}
+
 function clienteSheetRow(c: ClienteDB) {
   return [c.nome, c.celular ?? "", c.email ?? "", c.observacoes ?? "", fmtDate(Date.now())];
 }
@@ -97,17 +116,17 @@ function agendamentoSheetRow(a: AgendamentoDB) {
 }
 
 async function syncOSById(id: string) {
-  const snap = await getDoc(doc(db, "ordens_servico", id));
+  const snap = await getDocFromCache(doc(db, "ordens_servico", id));
   if (snap.exists()) pushSheet("Ordens de Servico", id, osSheetRow(fromOS(id, snap.data())));
 }
 
 async function syncOrcamentoById(id: string) {
-  const snap = await getDoc(doc(db, "orcamentos", id));
+  const snap = await getDocFromCache(doc(db, "orcamentos", id));
   if (snap.exists()) pushSheet("Orcamentos", id, orcamentoSheetRow(fromOrc(id, snap.data())));
 }
 
 async function syncAgendamentoById(id: string) {
-  const snap = await getDoc(doc(db, "agendamentos", id));
+  const snap = await getDocFromCache(doc(db, "agendamentos", id));
   if (snap.exists()) pushSheet("Agendamentos", id, agendamentoSheetRow(fromAg(id, snap.data())));
 }
 
@@ -119,15 +138,20 @@ export const osDB = {
     });
   },
   async create(o: Partial<OrdemServico>) {
-    const ref = await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
+    const ref = doc(osCol());
+    reportFirestoreWrite(
+      setDoc(ref, { ...cleanOS({ ...o, status: o.status ?? "fila" }), criadoEm: serverTimestamp() }),
+      "salvar ordem de serviço",
+    );
     pushSheet("Ordens de Servico", ref.id, osSheetRow(fromOS(ref.id, { ...o, status: o.status ?? "fila", criadoEm: Date.now() })));
+    return ref.id;
   },
   async update(id: string, o: Partial<OrdemServico>) {
-    await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
-    syncOSById(id).catch((e) => console.warn("[sheets] os update falhou", id, e));
+    reportFirestoreWrite(updateDoc(doc(db, "ordens_servico", id), cleanOS(o)), "atualizar ordem de serviço");
+    scheduleCacheSync(() => syncOSById(id));
   },
   async remove(id: string) {
-    await deleteDoc(doc(db, "ordens_servico", id));
+    reportFirestoreWrite(deleteDoc(doc(db, "ordens_servico", id)), "remover ordem de serviço");
     deleteSheet("Ordens de Servico", id);
   },
 };
@@ -151,24 +175,29 @@ export const clientesDB = {
     });
   },
   async create(c: { nome: string; celular?: string; email?: string; observacoes?: string }) {
-    const ref = await addDoc(cliCol(), {
+    const ref = doc(cliCol());
+    reportFirestoreWrite(setDoc(ref, {
       nome: c.nome, celular: c.celular ?? null,
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       criadoEm: serverTimestamp(),
-    });
+    }), "salvar cliente");
     pushSheet("Clientes", ref.id, clienteSheetRow(fromCli(ref.id, { ...c, criadoEm: Date.now() })));
+    return ref.id;
   },
   async update(id: string, c: Partial<ClienteDB>) {
-    await updateDoc(doc(db, "clientes", id), {
-      nome: c.nome ?? null, celular: c.celular ?? null,
-      email: c.email ?? null, observacoes: c.observacoes ?? null,
-      atualizadoEm: serverTimestamp(),
+    const patch: Record<string, unknown> = { atualizadoEm: serverTimestamp() };
+    if (Object.prototype.hasOwnProperty.call(c, "nome")) patch.nome = c.nome ?? null;
+    if (Object.prototype.hasOwnProperty.call(c, "celular")) patch.celular = c.celular ?? null;
+    if (Object.prototype.hasOwnProperty.call(c, "email")) patch.email = c.email ?? null;
+    if (Object.prototype.hasOwnProperty.call(c, "observacoes")) patch.observacoes = c.observacoes ?? null;
+    reportFirestoreWrite(updateDoc(doc(db, "clientes", id), patch), "atualizar cliente");
+    scheduleCacheSync(async () => {
+      const snap = await getDocFromCache(doc(db, "clientes", id));
+      if (snap.exists()) pushSheet("Clientes", id, clienteSheetRow(fromCli(id, snap.data())));
     });
-    const snap = await getDoc(doc(db, "clientes", id));
-    pushSheet("Clientes", id, clienteSheetRow(snap.exists() ? fromCli(id, snap.data()) : fromCli(id, { ...c, criadoEm: Date.now() })));
   },
   async remove(id: string) {
-    await deleteDoc(doc(db, "clientes", id));
+    reportFirestoreWrite(deleteDoc(doc(db, "clientes", id)), "remover cliente");
     deleteSheet("Clientes", id);
   },
 };
@@ -205,26 +234,28 @@ export const orcDB = {
     });
   },
   async create(o: Omit<OrcamentoDB, "id" | "criadoEm">) {
-    const ref = await addDoc(orcCol(), {
+    const ref = doc(orcCol());
+    reportFirestoreWrite(setDoc(ref, {
       cliente: o.cliente, celular: o.celular ?? null,
       itens: o.itens, total: o.total,
       formaPagamento: o.formaPagamento ?? null,
       status: o.status, pago: !!o.pago,
       observacoes: o.observacoes ?? null,
       criadoEm: serverTimestamp(),
-    });
+    }), "salvar orçamento");
     pushSheet("Orcamentos", ref.id, orcamentoSheetRow(fromOrc(ref.id, { ...o, criadoEm: Date.now() })));
+    return ref.id;
   },
   async setStatus(id: string, status: OrcStatus) {
-    await updateDoc(doc(db, "orcamentos", id), { status });
-    syncOrcamentoById(id).catch((e) => console.warn("[sheets] orc status falhou", id, e));
+    reportFirestoreWrite(updateDoc(doc(db, "orcamentos", id), { status }), "atualizar status do orçamento");
+    scheduleCacheSync(() => syncOrcamentoById(id));
   },
   async setPago(id: string, pago: boolean) {
-    await updateDoc(doc(db, "orcamentos", id), { pago });
-    syncOrcamentoById(id).catch((e) => console.warn("[sheets] orc pago falhou", id, e));
+    reportFirestoreWrite(updateDoc(doc(db, "orcamentos", id), { pago }), "atualizar pagamento do orçamento");
+    scheduleCacheSync(() => syncOrcamentoById(id));
   },
   async remove(id: string) {
-    await deleteDoc(doc(db, "orcamentos", id));
+    reportFirestoreWrite(deleteDoc(doc(db, "orcamentos", id)), "remover orçamento");
     deleteSheet("Orcamentos", id);
   },
 };
@@ -252,20 +283,22 @@ export const agDB = {
     });
   },
   async create(a: Omit<AgendamentoDB, "id" | "criadoEm">) {
-    const ref = await addDoc(agCol(), {
+    const ref = doc(agCol());
+    reportFirestoreWrite(setDoc(ref, {
       cliente: a.cliente, celular: a.celular ?? null,
       dataHora: a.dataHora, servico: a.servico,
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
       criadoEm: serverTimestamp(),
-    });
+    }), "salvar agendamento");
     pushSheet("Agendamentos", ref.id, agendamentoSheetRow(fromAg(ref.id, { ...a, criadoEm: Date.now() })));
+    return ref.id;
   },
   async setConfirmado(id: string, confirmado: boolean) {
-    await updateDoc(doc(db, "agendamentos", id), { confirmado });
-    syncAgendamentoById(id).catch((e) => console.warn("[sheets] agendamento falhou", id, e));
+    reportFirestoreWrite(updateDoc(doc(db, "agendamentos", id), { confirmado }), "atualizar confirmação do agendamento");
+    scheduleCacheSync(() => syncAgendamentoById(id));
   },
   async remove(id: string) {
-    await deleteDoc(doc(db, "agendamentos", id));
+    reportFirestoreWrite(deleteDoc(doc(db, "agendamentos", id)), "remover agendamento");
     deleteSheet("Agendamentos", id);
   },
 
@@ -290,22 +323,24 @@ export const catDB = {
     }, onError);
   },
   async create(s: Omit<ServicoDB, "id">) {
-    await addDoc(catCol(), {
+    const ref = doc(catCol());
+    reportFirestoreWrite(setDoc(ref, {
       nome: s.nome,
       preco: s.preco,
       categoria: s.categoria,
       criadoEm: serverTimestamp(),
       atualizadoEm: serverTimestamp(),
-    });
+    }), "salvar serviço do catálogo");
+    return ref.id;
   },
   async update(id: string, s: Partial<ServicoDB>) {
     const patch: Record<string, any> = { atualizadoEm: serverTimestamp() };
     if (s.nome !== undefined) patch.nome = s.nome;
     if (s.preco !== undefined) patch.preco = s.preco;
     if (s.categoria !== undefined) patch.categoria = s.categoria;
-    await updateDoc(doc(db, "servicos_catalogo", id), patch);
+    reportFirestoreWrite(updateDoc(doc(db, "servicos_catalogo", id), patch), "atualizar serviço do catálogo");
   },
-  async remove(id: string) { await deleteDoc(doc(db, "servicos_catalogo", id)); },
+  async remove(id: string) { reportFirestoreWrite(deleteDoc(doc(db, "servicos_catalogo", id)), "remover serviço do catálogo"); },
 };
 
 export const categoriaLabel: Record<ServicoCategoria, string> = {
@@ -318,7 +353,7 @@ export const orcStatusLabel: Record<OrcStatus, string> = {
 
 export async function backfillSheets() {
   const [clientes, ordens, orcamentos, agendamentos] = await Promise.all([
-    getDocs(cliCol()), getDocs(osCol()), getDocs(orcCol()), getDocs(agCol()),
+    getDocsFromCache(cliCol()), getDocsFromCache(osCol()), getDocsFromCache(orcCol()), getDocsFromCache(agCol()),
   ]);
   await Promise.all([
     ...clientes.docs.map((d) => syncSheet("Clientes", d.id, clienteSheetRow(fromCli(d.id, d.data())))),
