@@ -34,18 +34,17 @@ export function CatalogoTab() {
     return () => unsub();
   }, []);
 
-  function reportPendingWrite(promise: Promise<unknown>, message: string) {
-    promise.catch((err) => {
-      toast.error((err as Error).message || message);
-    });
+  function reportWriteError(message: string) {
+    return (err: Error) => {
+      toast.error(err.message || message);
+    };
   }
 
   async function add(e: FormEvent) {
     e.preventDefault();
     if (!nome) return;
     setBusy(true);
-    const write = catDB.create({ nome, categoria, preco: Number(preco.replace(",", ".")) || 0 });
-    reportPendingWrite(write, "Erro ao salvar serviço.");
+    catDB.create({ nome, categoria, preco: Number(preco.replace(",", ".")) || 0 }, reportWriteError("Erro ao salvar serviço."));
     setNome(""); setPreco("");
     setBusy(false);
     toast.success("Serviço salvo no aparelho e pronto para sincronizar.");
@@ -54,19 +53,19 @@ export function CatalogoTab() {
   async function updatePreco(id: string, v: string) {
     const n = Number(v.replace(",", ".")) || 0;
     setItems((p) => p.map((s) => s.id === id ? { ...s, preco: n } : s));
-    reportPendingWrite(catDB.update(id, { preco: n }), "Erro ao atualizar preço.");
+    catDB.update(id, { preco: n }, reportWriteError("Erro ao atualizar preço."));
     toast.success("Preço atualizado no aparelho.");
   }
 
   async function remove(id: string) {
-    reportPendingWrite(catDB.remove(id), "Erro ao remover serviço.");
+    catDB.remove(id, reportWriteError("Erro ao remover serviço."));
     toast.success("Serviço removido do aparelho.");
   }
 
   async function seedPadrao() {
     if (!confirm("Adicionar serviços padrão ao catálogo?")) return;
     setBusy(true);
-    for (const s of SEED) reportPendingWrite(catDB.create(s), "Erro ao carregar serviços padrão.");
+    for (const s of SEED) catDB.create(s, reportWriteError("Erro ao carregar serviços padrão."));
     setBusy(false);
     toast.success("Serviços padrão adicionados no aparelho.");
   }

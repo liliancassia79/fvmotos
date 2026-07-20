@@ -74,9 +74,10 @@ function osSheetRow(o: OrdemServico) {
   ];
 }
 
-function reportFirestoreWrite(promise: Promise<unknown>, label: string) {
+function reportFirestoreWrite(promise: Promise<unknown>, label: string, onError?: (error: Error) => void) {
   promise.catch((error) => {
     console.warn(`[firebase] ${label} falhou`, error);
+    onError?.(error instanceof Error ? error : new Error(String(error)));
   });
 }
 
@@ -322,7 +323,7 @@ export const catDB = {
       callback(items);
     }, onError);
   },
-  async create(s: Omit<ServicoDB, "id">) {
+  async create(s: Omit<ServicoDB, "id">, onError?: (error: Error) => void) {
     const ref = doc(catCol());
     reportFirestoreWrite(setDoc(ref, {
       nome: s.nome,
@@ -330,17 +331,19 @@ export const catDB = {
       categoria: s.categoria,
       criadoEm: serverTimestamp(),
       atualizadoEm: serverTimestamp(),
-    }), "salvar serviço do catálogo");
+    }), "salvar serviço do catálogo", onError);
     return ref.id;
   },
-  async update(id: string, s: Partial<ServicoDB>) {
+  async update(id: string, s: Partial<ServicoDB>, onError?: (error: Error) => void) {
     const patch: Record<string, any> = { atualizadoEm: serverTimestamp() };
     if (s.nome !== undefined) patch.nome = s.nome;
     if (s.preco !== undefined) patch.preco = s.preco;
     if (s.categoria !== undefined) patch.categoria = s.categoria;
-    reportFirestoreWrite(updateDoc(doc(db, "servicos_catalogo", id), patch), "atualizar serviço do catálogo");
+    reportFirestoreWrite(updateDoc(doc(db, "servicos_catalogo", id), patch), "atualizar serviço do catálogo", onError);
   },
-  async remove(id: string) { reportFirestoreWrite(deleteDoc(doc(db, "servicos_catalogo", id)), "remover serviço do catálogo"); },
+  async remove(id: string, onError?: (error: Error) => void) {
+    reportFirestoreWrite(deleteDoc(doc(db, "servicos_catalogo", id)), "remover serviço do catálogo", onError);
+  },
 };
 
 export const categoriaLabel: Record<ServicoCategoria, string> = {
