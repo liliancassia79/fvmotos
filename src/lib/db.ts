@@ -1,11 +1,12 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
-  query, orderBy, onSnapshot, serverTimestamp, Timestamp,
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp, getDoc, getDocs,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { OrdemServico, OSStatus } from "./os-storage";
-import type { FormaPagamento } from "./pagamento";
-import { pushSheet, deleteSheet, fmtDate } from "./sheets-sync";
+import { statusLabel } from "./os-storage";
+import { formaPagamentoLabel, type FormaPagamento } from "./pagamento";
+import { pushSheet, deleteSheet, syncSheet, fmtDate } from "./sheets-sync";
 
 
 function tsToMillis(v: any): number {
@@ -42,21 +43,72 @@ function fromOS(id: string, r: any): OrdemServico {
 
 function cleanOS(o: Partial<OrdemServico>): Record<string, any> {
   const row: Record<string, any> = {};
-  const set = (k: string, v: any) => { if (v !== undefined) row[k] = v; };
+  const set = (k: keyof OrdemServico, v: any) => {
+    if (Object.prototype.hasOwnProperty.call(o, k)) row[k] = v ?? null;
+  };
   set("modelo", o.modelo);
   set("placa", o.placa);
   set("cliente", o.cliente);
-  set("celular", o.celular ?? null);
-  set("defeito", o.defeito ?? null);
-  set("valor", o.valor ?? null);
-  set("formaPagamento", o.formaPagamento ?? null);
-  set("observacoes", o.observacoes ?? null);
+  set("celular", o.celular);
+  set("defeito", o.defeito);
+  set("valor", o.valor);
+  set("formaPagamento", o.formaPagamento);
+  set("observacoes", o.observacoes);
   set("fotos", o.fotos ?? []);
   set("status", o.status);
   if (typeof o.pago === "boolean") row.pago = o.pago;
   if (o.atualizadoEm) row.atualizadoEm = new Date(o.atualizadoEm).getTime();
   if (o.finalizadoEm) row.finalizadoEm = new Date(o.finalizadoEm).getTime();
   return row;
+}
+
+function pagamentoNome(v?: FormaPagamento | null) {
+  return v ? formaPagamentoLabel[v] ?? v : "";
+}
+
+function osSheetRow(o: OrdemServico) {
+  return [
+    o.cliente, o.modelo, o.placa, o.celular ?? "", o.defeito ?? "",
+    o.valor ?? "", pagamentoNome(o.formaPagamento), o.pago ? "Sim" : "Não",
+    statusLabel[o.status] ?? o.status, fmtDate(o.criadoEm), fmtDate(o.atualizadoEm), fmtDate(o.finalizadoEm),
+  ];
+}
+
+function clienteSheetRow(c: ClienteDB) {
+  return [c.nome, c.celular ?? "", c.email ?? "", c.observacoes ?? "", fmtDate(Date.now())];
+}
+
+function orcamentoSheetRow(o: OrcamentoDB) {
+  const itensTxt = o.itens.map((i) => `${i.descricao} (R$ ${i.valor})`).join(" | ");
+  return [
+    o.cliente, o.celular ?? "", itensTxt, o.total ?? 0, pagamentoNome(o.formaPagamento),
+    orcStatusLabel[o.status] ?? o.status, o.pago ? "Sim" : "Não", o.observacoes ?? "", fmtDate(o.criadoEm),
+  ];
+}
+
+function agendamentoSheetRow(a: AgendamentoDB) {
+  const d = new Date(a.dataHora);
+  return [
+    a.cliente, a.celular ?? "",
+    d.toLocaleDateString("pt-BR"),
+    d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    a.servico, a.confirmado ? "Sim" : "Não", a.observacoes ?? "", fmtDate(a.criadoEm),
+  ];
+}
+
+async function syncOSById(id: string) {
+  const snap = await getDoc(doc(db, "ordens_servico", id));
+  if (snap.exists()) pushSheet("Ordens de Servico", id, osSheetRow(fromOS(id, snap.data())));
+}
+
+async function syncOrcamentoById(id: string) {
+  const snap = await getDoc(doc(db, "orcamentos", id));
+  if (snap.exists()) pushSheet("Orcamentos", id, orcamentoSheetRow(fromOrc(id, snap.data())));
+}
+
+async function syncAgendamentoById(id: string) {
+  const snap = await getDoc(doc(db, "agendamentos", id));
+  if (snap.exists()) pushSheet("Agendamentos", id, agendamentoSheetRow(fromAg(id, snap.data())));
 }
 
 export const osDB = {
@@ -68,19 +120,11 @@ export const osDB = {
   },
   async create(o: Partial<OrdemServico>) {
     const ref = await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
-    pushSheet("Ordens de Servico", ref.id, [
-      o.cliente ?? "", o.modelo ?? "", o.placa ?? "", o.defeito ?? "",
-      o.valor ?? 0, o.status ?? "fila", o.pago ? "Sim" : "Não",
-      o.formaPagamento ?? "", fmtDate(Date.now()),
-    ]);
+    pushSheet("Ordens de Servico", ref.id, osSheetRow(fromOS(ref.id, { ...o, status: o.status ?? "fila", criadoEm: Date.now() })));
   },
   async update(id: string, o: Partial<OrdemServico>) {
     await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
-    pushSheet("Ordens de Servico", id, [
-      o.cliente ?? "", o.modelo ?? "", o.placa ?? "", o.defeito ?? "",
-      o.valor ?? 0, o.status ?? "fila", o.pago ? "Sim" : "Não",
-      o.formaPagamento ?? "", fmtDate(Date.now()),
-    ]);
+    syncOSById(id).catch((e) => console.warn("[sheets] os update falhou", id, e));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "ordens_servico", id));
@@ -112,9 +156,7 @@ export const clientesDB = {
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
-    pushSheet("Clientes", ref.id, [
-      c.nome, c.celular ?? "", c.email ?? "", fmtDate(Date.now()),
-    ]);
+    pushSheet("Clientes", ref.id, clienteSheetRow(fromCli(ref.id, { ...c, criadoEm: Date.now() })));
   },
   async update(id: string, c: Partial<ClienteDB>) {
     await updateDoc(doc(db, "clientes", id), {
@@ -122,9 +164,8 @@ export const clientesDB = {
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       atualizadoEm: serverTimestamp(),
     });
-    pushSheet("Clientes", id, [
-      c.nome ?? "", c.celular ?? "", c.email ?? "", fmtDate(Date.now()),
-    ]);
+    const snap = await getDoc(doc(db, "clientes", id));
+    pushSheet("Clientes", id, clienteSheetRow(snap.exists() ? fromCli(id, snap.data()) : fromCli(id, { ...c, criadoEm: Date.now() })));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "clientes", id));
@@ -172,17 +213,15 @@ export const orcDB = {
       observacoes: o.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
-    const itensTxt = o.itens.map((i) => `${i.descricao} (R$ ${i.valor})`).join(" | ");
-    pushSheet("Orcamentos", ref.id, [
-      o.cliente, itensTxt, o.total, o.status, o.pago ? "Sim" : "Não",
-      fmtDate(Date.now()),
-    ]);
+    pushSheet("Orcamentos", ref.id, orcamentoSheetRow(fromOrc(ref.id, { ...o, criadoEm: Date.now() })));
   },
   async setStatus(id: string, status: OrcStatus) {
     await updateDoc(doc(db, "orcamentos", id), { status });
+    syncOrcamentoById(id).catch((e) => console.warn("[sheets] orc status falhou", id, e));
   },
   async setPago(id: string, pago: boolean) {
     await updateDoc(doc(db, "orcamentos", id), { pago });
+    syncOrcamentoById(id).catch((e) => console.warn("[sheets] orc pago falhou", id, e));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "orcamentos", id));
@@ -219,17 +258,11 @@ export const agDB = {
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
       criadoEm: serverTimestamp(),
     });
-    const d = new Date(a.dataHora);
-    pushSheet("Agendamentos", ref.id, [
-      a.cliente,
-      d.toLocaleDateString("pt-BR"),
-      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-      a.servico,
-      fmtDate(Date.now()),
-    ]);
+    pushSheet("Agendamentos", ref.id, agendamentoSheetRow(fromAg(ref.id, { ...a, criadoEm: Date.now() })));
   },
   async setConfirmado(id: string, confirmado: boolean) {
     await updateDoc(doc(db, "agendamentos", id), { confirmado });
+    syncAgendamentoById(id).catch((e) => console.warn("[sheets] agendamento falhou", id, e));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "agendamentos", id));
@@ -282,3 +315,15 @@ export const categoriaLabel: Record<ServicoCategoria, string> = {
 export const orcStatusLabel: Record<OrcStatus, string> = {
   rascunho: "Rascunho", enviado: "Enviado", aprovado: "Aprovado", recusado: "Recusado",
 };
+
+export async function backfillSheets() {
+  const [clientes, ordens, orcamentos, agendamentos] = await Promise.all([
+    getDocs(cliCol()), getDocs(osCol()), getDocs(orcCol()), getDocs(agCol()),
+  ]);
+  await Promise.all([
+    ...clientes.docs.map((d) => syncSheet("Clientes", d.id, clienteSheetRow(fromCli(d.id, d.data())))),
+    ...ordens.docs.map((d) => syncSheet("Ordens de Servico", d.id, osSheetRow(fromOS(d.id, d.data())))),
+    ...orcamentos.docs.map((d) => syncSheet("Orcamentos", d.id, orcamentoSheetRow(fromOrc(d.id, d.data())))),
+    ...agendamentos.docs.map((d) => syncSheet("Agendamentos", d.id, agendamentoSheetRow(fromAg(d.id, d.data())))),
+  ]);
+}

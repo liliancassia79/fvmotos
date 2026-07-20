@@ -5,7 +5,7 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
-import { osDB, catDB, type ServicoDB } from "@/lib/db";
+import { backfillSheets, osDB, catDB, type ServicoDB } from "@/lib/db";
 import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
 import { useInstallPrompt } from "@/lib/install-pwa";
@@ -45,6 +45,14 @@ function AppShell() {
   const [history, setHistory] = useState<View[]>([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { install, installed, canInstall } = useInstallPrompt();
+
+  useEffect(() => {
+    const key = "fv-sheets-backfill-v2";
+    if (window.localStorage.getItem(key)) return;
+    backfillSheets()
+      .then(() => window.localStorage.setItem(key, "ok"))
+      .catch((e) => console.warn("[sheets] backfill falhou", e));
+  }, []);
 
   function goTo(next: View) {
     setHistory((h) => (next === view ? h : [...h, view]));
