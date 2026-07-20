@@ -1,10 +1,12 @@
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc,
+  collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
   query, orderBy, onSnapshot, serverTimestamp, Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { sheetsSync } from "./sheets-sync";
 import type { OrdemServico, OSStatus } from "./os-storage";
 import type { FormaPagamento } from "./pagamento";
+
 
 function tsToMillis(v: any): number {
   if (!v) return Date.now();
