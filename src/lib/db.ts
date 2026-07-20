@@ -99,11 +99,12 @@ export const clientesDB = {
     });
   },
   async create(c: { nome: string; celular?: string; email?: string; observacoes?: string }) {
-    await addDoc(cliCol(), {
+    const ref = await addDoc(cliCol(), {
       nome: c.nome, celular: c.celular ?? null,
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
+    getDoc(ref).then((s) => s.exists() && sheetsSync.cliente.upsert(fromCli(ref.id, s.data())));
   },
   async update(id: string, c: Partial<ClienteDB>) {
     await updateDoc(doc(db, "clientes", id), {
@@ -111,9 +112,14 @@ export const clientesDB = {
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       atualizadoEm: serverTimestamp(),
     });
+    getDoc(doc(db, "clientes", id)).then((s) => s.exists() && sheetsSync.cliente.upsert(fromCli(id, s.data())));
   },
-  async remove(id: string) { await deleteDoc(doc(db, "clientes", id)); },
+  async remove(id: string) {
+    await deleteDoc(doc(db, "clientes", id));
+    sheetsSync.cliente.remove(id);
+  },
 };
+
 
 // ---------- Orçamentos ----------
 export type OrcStatus = "rascunho" | "enviado" | "aprovado" | "recusado";
