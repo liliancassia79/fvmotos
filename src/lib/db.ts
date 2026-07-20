@@ -164,7 +164,7 @@ export const orcDB = {
     });
   },
   async create(o: Omit<OrcamentoDB, "id" | "criadoEm">) {
-    await addDoc(orcCol(), {
+    const ref = await addDoc(orcCol(), {
       cliente: o.cliente, celular: o.celular ?? null,
       itens: o.itens, total: o.total,
       formaPagamento: o.formaPagamento ?? null,
@@ -172,6 +172,11 @@ export const orcDB = {
       observacoes: o.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
+    const itensTxt = o.itens.map((i) => `${i.descricao} (R$ ${i.valor})`).join(" | ");
+    pushSheet("Orcamentos", ref.id, [
+      o.cliente, itensTxt, o.total, o.status, o.pago ? "Sim" : "Não",
+      fmtDate(Date.now()),
+    ]);
   },
   async setStatus(id: string, status: OrcStatus) {
     await updateDoc(doc(db, "orcamentos", id), { status });
@@ -179,8 +184,12 @@ export const orcDB = {
   async setPago(id: string, pago: boolean) {
     await updateDoc(doc(db, "orcamentos", id), { pago });
   },
-  async remove(id: string) { await deleteDoc(doc(db, "orcamentos", id)); },
+  async remove(id: string) {
+    await deleteDoc(doc(db, "orcamentos", id));
+    deleteSheet("Orcamentos", id);
+  },
 };
+
 
 // ---------- Agendamentos ----------
 export interface AgendamentoDB {
