@@ -5,6 +5,8 @@ import {
 import { db } from "./firebase";
 import type { OrdemServico, OSStatus } from "./os-storage";
 import type { FormaPagamento } from "./pagamento";
+import { pushSheet, deleteSheet, fmtDate } from "./sheets-sync";
+
 
 function tsToMillis(v: any): number {
   if (!v) return Date.now();
