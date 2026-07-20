@@ -67,15 +67,27 @@ export const osDB = {
     });
   },
   async create(o: Partial<OrdemServico>) {
-    await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
+    const ref = await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
+    pushSheet("Ordens de Servico", ref.id, [
+      o.cliente ?? "", o.modelo ?? "", o.placa ?? "", o.defeito ?? "",
+      o.valor ?? 0, o.status ?? "fila", o.pago ? "Sim" : "Não",
+      o.formaPagamento ?? "", fmtDate(Date.now()),
+    ]);
   },
   async update(id: string, o: Partial<OrdemServico>) {
     await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
+    pushSheet("Ordens de Servico", id, [
+      o.cliente ?? "", o.modelo ?? "", o.placa ?? "", o.defeito ?? "",
+      o.valor ?? 0, o.status ?? "fila", o.pago ? "Sim" : "Não",
+      o.formaPagamento ?? "", fmtDate(Date.now()),
+    ]);
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "ordens_servico", id));
+    deleteSheet("Ordens de Servico", id);
   },
 };
+
 
 // ---------- Clientes ----------
 export interface ClienteDB {
