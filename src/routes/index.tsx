@@ -5,7 +5,7 @@ import {
   formatBRL, relativeTime, whatsappLink, exportarCSV,
   type OrdemServico, type OSStatus,
 } from "@/lib/os-storage";
-import { osDB, catDB, type ServicoDB } from "@/lib/db";
+import { osDB, catDB, backfillSheets, type ServicoDB } from "@/lib/db";
 import { abrirPDFOrdemServico, osMensagemWhatsapp } from "@/lib/os-pdf";
 import { formasPagamento, type FormaPagamento } from "@/lib/pagamento";
 import { useInstallPrompt } from "@/lib/install-pwa";
