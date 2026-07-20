@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { catDB, categoriaLabel, type ServicoDB, type ServicoCategoria } from "@/lib/db";
 import { formatBRL } from "@/lib/os-storage";
 import { Field, Panel, Empty } from "./ui-bits";
@@ -27,7 +28,9 @@ export function CatalogoTab() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const unsub = catDB.subscribe(setItems);
+    const unsub = catDB.subscribe(setItems, () => {
+      toast.error("Não foi possível carregar o catálogo de serviços.");
+    });
     return () => unsub();
   }, []);
 
@@ -38,23 +41,42 @@ export function CatalogoTab() {
     try {
       await catDB.create({ nome, categoria, preco: Number(preco.replace(",", ".")) || 0 });
       setNome(""); setPreco("");
-    } catch (err) { alert((err as Error).message); }
+      toast.success("Serviço salvo no catálogo.");
+    } catch (err) { toast.error((err as Error).message || "Erro ao salvar serviço."); }
     finally { setBusy(false); }
   }
 
   async function updatePreco(id: string, v: string) {
     const n = Number(v.replace(",", ".")) || 0;
     setItems((p) => p.map((s) => s.id === id ? { ...s, preco: n } : s));
-    await catDB.update(id, { preco: n });
+    try {
+      await catDB.update(id, { preco: n });
+      toast.success("Preço atualizado.");
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao atualizar preço.");
+    }
   }
 
   async function remove(id: string) {
-    await catDB.remove(id);
+    try {
+      await catDB.remove(id);
+      toast.success("Serviço removido.");
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao remover serviço.");
+    }
   }
 
   async function seedPadrao() {
     if (!confirm("Adicionar serviços padrão ao catálogo?")) return;
-    for (const s of SEED) await catDB.create(s);
+    setBusy(true);
+    try {
+      for (const s of SEED) await catDB.create(s);
+      toast.success("Serviços padrão adicionados.");
+    } catch (err) {
+      toast.error((err as Error).message || "Erro ao carregar serviços padrão.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const grupos = useMemo(() => {

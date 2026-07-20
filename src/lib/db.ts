@@ -202,19 +202,26 @@ const fromSrv = (id: string, r: any): ServicoDB => ({
   categoria: (r.categoria ?? "revisao") as ServicoCategoria,
 });
 export const catDB = {
-  subscribe(callback: (servicos: ServicoDB[]) => void) {
-    return onSnapshot(catCol(), (snap) => {
+  subscribe(callback: (servicos: ServicoDB[]) => void, onError?: (error: Error) => void) {
+    const q = query(catCol(), orderBy("categoria", "asc"));
+    return onSnapshot(q, (snap) => {
       const items = snap.docs.map((d) => fromSrv(d.id, d.data()));
       items.sort((a, b) =>
         a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome));
       callback(items);
-    });
+    }, onError);
   },
   async create(s: Omit<ServicoDB, "id">) {
-    await addDoc(catCol(), { nome: s.nome, preco: s.preco, categoria: s.categoria });
+    await addDoc(catCol(), {
+      nome: s.nome,
+      preco: s.preco,
+      categoria: s.categoria,
+      criadoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp(),
+    });
   },
   async update(id: string, s: Partial<ServicoDB>) {
-    const patch: Record<string, any> = {};
+    const patch: Record<string, any> = { atualizadoEm: serverTimestamp() };
     if (s.nome !== undefined) patch.nome = s.nome;
     if (s.preco !== undefined) patch.preco = s.preco;
     if (s.categoria !== undefined) patch.categoria = s.categoria;
