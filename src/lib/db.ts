@@ -67,15 +67,19 @@ export const osDB = {
     });
   },
   async create(o: Partial<OrdemServico>) {
-    await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
+    const ref = await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
+    getDoc(ref).then((s) => s.exists() && sheetsSync.os.upsert({ id: ref.id, ...(fromOS(ref.id, s.data()) as any) }));
   },
   async update(id: string, o: Partial<OrdemServico>) {
     await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
+    getDoc(doc(db, "ordens_servico", id)).then((s) => s.exists() && sheetsSync.os.upsert({ id, ...(fromOS(id, s.data()) as any) }));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "ordens_servico", id));
+    sheetsSync.os.remove(id);
   },
 };
+
 
 // ---------- Clientes ----------
 export interface ClienteDB {
