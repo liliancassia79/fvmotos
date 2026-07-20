@@ -152,7 +152,7 @@ export const orcDB = {
     });
   },
   async create(o: Omit<OrcamentoDB, "id" | "criadoEm">) {
-    await addDoc(orcCol(), {
+    const ref = await addDoc(orcCol(), {
       cliente: o.cliente, celular: o.celular ?? null,
       itens: o.itens, total: o.total,
       formaPagamento: o.formaPagamento ?? null,
@@ -160,14 +160,20 @@ export const orcDB = {
       observacoes: o.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
+    getDoc(ref).then((s) => s.exists() && sheetsSync.orc.upsert(fromOrc(ref.id, s.data())));
   },
   async setStatus(id: string, status: OrcStatus) {
     await updateDoc(doc(db, "orcamentos", id), { status });
+    getDoc(doc(db, "orcamentos", id)).then((s) => s.exists() && sheetsSync.orc.upsert(fromOrc(id, s.data())));
   },
   async setPago(id: string, pago: boolean) {
     await updateDoc(doc(db, "orcamentos", id), { pago });
+    getDoc(doc(db, "orcamentos", id)).then((s) => s.exists() && sheetsSync.orc.upsert(fromOrc(id, s.data())));
   },
-  async remove(id: string) { await deleteDoc(doc(db, "orcamentos", id)); },
+  async remove(id: string) {
+    await deleteDoc(doc(db, "orcamentos", id));
+    sheetsSync.orc.remove(id);
+  },
 };
 
 // ---------- Agendamentos ----------
@@ -192,18 +198,24 @@ export const agDB = {
     });
   },
   async create(a: Omit<AgendamentoDB, "id" | "criadoEm">) {
-    await addDoc(agCol(), {
+    const ref = await addDoc(agCol(), {
       cliente: a.cliente, celular: a.celular ?? null,
       dataHora: a.dataHora, servico: a.servico,
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
       criadoEm: serverTimestamp(),
     });
+    getDoc(ref).then((s) => s.exists() && sheetsSync.ag.upsert(fromAg(ref.id, s.data())));
   },
   async setConfirmado(id: string, confirmado: boolean) {
     await updateDoc(doc(db, "agendamentos", id), { confirmado });
+    getDoc(doc(db, "agendamentos", id)).then((s) => s.exists() && sheetsSync.ag.upsert(fromAg(id, s.data())));
   },
-  async remove(id: string) { await deleteDoc(doc(db, "agendamentos", id)); },
+  async remove(id: string) {
+    await deleteDoc(doc(db, "agendamentos", id));
+    sheetsSync.ag.remove(id);
+  },
 };
+
 
 // ---------- Catálogo ----------
 export type ServicoCategoria = "revisao" | "pecas" | "motor" | "eletrica" | "injecao" | "acessorios";
