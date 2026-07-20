@@ -34,7 +34,7 @@ export function CatalogoTab() {
     return () => unsub();
   }, []);
 
-  function reportPendingWrite(promise: Promise<void>, message: string) {
+  function reportPendingWrite(promise: Promise<unknown>, message: string) {
     promise.catch((err) => {
       toast.error((err as Error).message || message);
     });
