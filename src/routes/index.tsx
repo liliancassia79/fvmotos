@@ -159,6 +159,8 @@ function OSView() {
     const unsub = catDB.subscribe(setCatalogo);
     return () => unsub();
   }, []);
+  useEffect(() => { backfillSheets(); }, []);
+
 
   function aplicarServico(id: string) {
     const s = catalogo.find((x) => x.id === id);
