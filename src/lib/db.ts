@@ -213,17 +213,29 @@ export const agDB = {
     });
   },
   async create(a: Omit<AgendamentoDB, "id" | "criadoEm">) {
-    await addDoc(agCol(), {
+    const ref = await addDoc(agCol(), {
       cliente: a.cliente, celular: a.celular ?? null,
       dataHora: a.dataHora, servico: a.servico,
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
       criadoEm: serverTimestamp(),
     });
+    const d = new Date(a.dataHora);
+    pushSheet("Agendamentos", ref.id, [
+      a.cliente,
+      d.toLocaleDateString("pt-BR"),
+      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      a.servico,
+      fmtDate(Date.now()),
+    ]);
   },
   async setConfirmado(id: string, confirmado: boolean) {
     await updateDoc(doc(db, "agendamentos", id), { confirmado });
   },
-  async remove(id: string) { await deleteDoc(doc(db, "agendamentos", id)); },
+  async remove(id: string) {
+    await deleteDoc(doc(db, "agendamentos", id));
+    deleteSheet("Agendamentos", id);
+  },
+
 };
 
 // ---------- Catálogo ----------
