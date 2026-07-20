@@ -16,7 +16,7 @@ type QueueItem = {
 
 const QUEUE_KEY = "fv-sheets-sync-queue-v1";
 let draining = false;
-let drainTimer: ReturnType<typeof setTimeout> | null = null;
+let drainTimer: number | null = null;
 
 function hasBrowserStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
