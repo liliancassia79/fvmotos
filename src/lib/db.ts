@@ -1,11 +1,11 @@
 import {
-  collection, doc, addDoc, updateDoc, deleteDoc,
+  collection, doc, addDoc, updateDoc, deleteDoc, getDoc,
   query, orderBy, onSnapshot, serverTimestamp, Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { sheetsSync } from "./sheets-sync";
 import type { OrdemServico, OSStatus } from "./os-storage";
 import type { FormaPagamento } from "./pagamento";
-import { pushSheet, deleteSheet, fmtDate } from "./sheets-sync";
 
 
 function tsToMillis(v: any): number {
@@ -68,23 +68,15 @@ export const osDB = {
   },
   async create(o: Partial<OrdemServico>) {
     const ref = await addDoc(osCol(), { ...cleanOS(o), criadoEm: serverTimestamp() });
-    pushSheet("Ordens de Servico", ref.id, [
-      o.cliente ?? "", o.modelo ?? "", o.placa ?? "", o.defeito ?? "",
-      o.valor ?? 0, o.status ?? "fila", o.pago ? "Sim" : "Não",
-      o.formaPagamento ?? "", fmtDate(Date.now()),
-    ]);
+    getDoc(ref).then((s) => s.exists() && sheetsSync.os.upsert({ id: ref.id, ...(fromOS(ref.id, s.data()) as any) }));
   },
   async update(id: string, o: Partial<OrdemServico>) {
     await updateDoc(doc(db, "ordens_servico", id), cleanOS(o));
-    pushSheet("Ordens de Servico", id, [
-      o.cliente ?? "", o.modelo ?? "", o.placa ?? "", o.defeito ?? "",
-      o.valor ?? 0, o.status ?? "fila", o.pago ? "Sim" : "Não",
-      o.formaPagamento ?? "", fmtDate(Date.now()),
-    ]);
+    getDoc(doc(db, "ordens_servico", id)).then((s) => s.exists() && sheetsSync.os.upsert({ id, ...(fromOS(id, s.data()) as any) }));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "ordens_servico", id));
-    deleteSheet("Ordens de Servico", id);
+    sheetsSync.os.remove(id);
   },
 };
 
@@ -112,9 +104,7 @@ export const clientesDB = {
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
-    pushSheet("Clientes", ref.id, [
-      c.nome, c.celular ?? "", c.email ?? "", fmtDate(Date.now()),
-    ]);
+    getDoc(ref).then((s) => s.exists() && sheetsSync.cliente.upsert(fromCli(ref.id, s.data())));
   },
   async update(id: string, c: Partial<ClienteDB>) {
     await updateDoc(doc(db, "clientes", id), {
@@ -122,13 +112,11 @@ export const clientesDB = {
       email: c.email ?? null, observacoes: c.observacoes ?? null,
       atualizadoEm: serverTimestamp(),
     });
-    pushSheet("Clientes", id, [
-      c.nome ?? "", c.celular ?? "", c.email ?? "", fmtDate(Date.now()),
-    ]);
+    getDoc(doc(db, "clientes", id)).then((s) => s.exists() && sheetsSync.cliente.upsert(fromCli(id, s.data())));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "clientes", id));
-    deleteSheet("Clientes", id);
+    sheetsSync.cliente.remove(id);
   },
 };
 
@@ -172,24 +160,21 @@ export const orcDB = {
       observacoes: o.observacoes ?? null,
       criadoEm: serverTimestamp(),
     });
-    const itensTxt = o.itens.map((i) => `${i.descricao} (R$ ${i.valor})`).join(" | ");
-    pushSheet("Orcamentos", ref.id, [
-      o.cliente, itensTxt, o.total, o.status, o.pago ? "Sim" : "Não",
-      fmtDate(Date.now()),
-    ]);
+    getDoc(ref).then((s) => s.exists() && sheetsSync.orc.upsert(fromOrc(ref.id, s.data())));
   },
   async setStatus(id: string, status: OrcStatus) {
     await updateDoc(doc(db, "orcamentos", id), { status });
+    getDoc(doc(db, "orcamentos", id)).then((s) => s.exists() && sheetsSync.orc.upsert(fromOrc(id, s.data())));
   },
   async setPago(id: string, pago: boolean) {
     await updateDoc(doc(db, "orcamentos", id), { pago });
+    getDoc(doc(db, "orcamentos", id)).then((s) => s.exists() && sheetsSync.orc.upsert(fromOrc(id, s.data())));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "orcamentos", id));
-    deleteSheet("Orcamentos", id);
+    sheetsSync.orc.remove(id);
   },
 };
-
 
 // ---------- Agendamentos ----------
 export interface AgendamentoDB {
@@ -219,24 +204,18 @@ export const agDB = {
       observacoes: a.observacoes ?? null, confirmado: a.confirmado,
       criadoEm: serverTimestamp(),
     });
-    const d = new Date(a.dataHora);
-    pushSheet("Agendamentos", ref.id, [
-      a.cliente,
-      d.toLocaleDateString("pt-BR"),
-      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-      a.servico,
-      fmtDate(Date.now()),
-    ]);
+    getDoc(ref).then((s) => s.exists() && sheetsSync.ag.upsert(fromAg(ref.id, s.data())));
   },
   async setConfirmado(id: string, confirmado: boolean) {
     await updateDoc(doc(db, "agendamentos", id), { confirmado });
+    getDoc(doc(db, "agendamentos", id)).then((s) => s.exists() && sheetsSync.ag.upsert(fromAg(id, s.data())));
   },
   async remove(id: string) {
     await deleteDoc(doc(db, "agendamentos", id));
-    deleteSheet("Agendamentos", id);
+    sheetsSync.ag.remove(id);
   },
-
 };
+
 
 // ---------- Catálogo ----------
 export type ServicoCategoria = "revisao" | "pecas" | "motor" | "eletrica" | "injecao" | "acessorios";
@@ -282,3 +261,26 @@ export const categoriaLabel: Record<ServicoCategoria, string> = {
 export const orcStatusLabel: Record<OrcStatus, string> = {
   rascunho: "Rascunho", enviado: "Enviado", aprovado: "Aprovado", recusado: "Recusado",
 };
+
+// ---------- Backfill Sheets (one-shot) ----------
+let backfillDone = false;
+export async function backfillSheets() {
+  if (backfillDone) return;
+  backfillDone = true;
+  const once = <T,>(col: () => any, from: (id: string, r: any) => T, push: (v: T) => void) =>
+    new Promise<void>((resolve) => {
+      const unsub = onSnapshot(query(col()), (snap) => {
+        snap.docs.forEach((d) => push(from(d.id, d.data())));
+        unsub();
+        resolve();
+      });
+    });
+  try {
+    await Promise.all([
+      once(cliCol, fromCli, (v) => sheetsSync.cliente.upsert(v)),
+      once(osCol, fromOS, (v) => sheetsSync.os.upsert(v as any)),
+      once(orcCol, fromOrc, (v) => sheetsSync.orc.upsert(v)),
+      once(agCol, fromAg, (v) => sheetsSync.ag.upsert(v)),
+    ]);
+  } catch (e) { console.warn("[backfill]", e); }
+}
