@@ -1,94 +1,88 @@
 # fvmotos
 
-Aplicação web para gestão da **FV Motos**, com foco em operação comercial e administrativa.
+Aplicação web para gestão da **FV Motos**, focada em operação comercial e administrativa (cadastro, vendas, atendimento e controle interno).
 
 ---
 
 ## 📌 Sobre o projeto
 
-O **fvmotos** é um sistema desenvolvido com **TypeScript** para centralizar processos da loja, incluindo cadastro, atendimento e controle interno.
+O fvmotos é uma interface frontend escrita em TypeScript/React que consome serviços (ex.: Supabase) para gerenciar os fluxos da loja. O repositório contém a aplicação cliente (Vite) e integrações/SQL em `supabase/`.
 
-O projeto está publicado em:
+- Produção: https://fvmotos.vercel.app
 
-- **Produção:** https://fvmotos.vercel.app
+### Stack
+- Language(s): TypeScript (+ PL/pgSQL para scripts DB)
+- Runtime / bundler: Vite (build) + React
+- Notable libraries: @tanstack/react-query, @tanstack/react-router, @supabase/supabase-js, tailwindcss, zod
 
-## 🚀 Tecnologias
+## 🧱 Estrutura do repositório
 
-- **TypeScript**
-- **PL/pgSQL**
-- **Outras linguagens/arquivos de suporte**
-
-## 🧱 Estrutura esperada do projeto
-
-Como referência, a estrutura costuma seguir um padrão como:
-
-```bash
+```text
 fvmotos/
-├─ src/
-├─ public/
+├─ src/            # código fonte (UI, rotas, inicialização)
+├─ public/         # assets públicos
+├─ supabase/       # scripts SQL / funções relacionadas ao Supabase
 ├─ package.json
 ├─ tsconfig.json
+├─ vite.config.ts
+├─ LICENSE         # licença do projeto (MIT)
 └─ README.md
 ```
-
-> Se quiser, posso atualizar esta seção com a estrutura exata dos diretórios/arquivos.
 
 ## ⚙️ Pré-requisitos
 
 - Node.js (LTS recomendado)
-- npm (ou yarn/pnpm)
-- Banco PostgreSQL (se usado localmente)
+- npm (ou outro gerenciador: pnpm/bun — escolha um e documente)
+- Banco PostgreSQL (se executar integrações locais com Supabase)
 
 ## ▶️ Como executar localmente
 
 ```bash
 # clonar
 git clone https://github.com/liliancassia79/fvmotos.git
-
-# entrar na pasta
 cd fvmotos
 
-# instalar dependências
+# instalar dependências (npm)
 npm install
 
 # rodar em desenvolvimento
 npm run dev
-```
 
-## 🧪 Testes
-
-```bash
-npm test
-```
-
-## 📦 Build
-
-```bash
+# build e preview
 npm run build
-npm start
+npm run preview
 ```
+
+Observação: o `package.json` deste projeto fornece os scripts `dev`, `build`, `build:dev` e `preview` (use `npm run preview` para servir o build localmente). Não há scripts `test` ou `start` configurados por padrão — adicione-os se precisar de cobertura de testes ou de um servidor de produção diferente.
 
 ## 🔐 Variáveis de ambiente
 
-Crie um arquivo `.env` com as configurações do projeto, por exemplo:
+Não versionar segredos. Crie um arquivo `.env` localmente ou configure variáveis no provedor de deploy (Vercel). Exemplo de `.env.example` mínimo:
 
 ```env
 NODE_ENV=development
-PORT=3000
+VITE_SUPABASE_URL=https://<seu-projeto>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<public-key>
 DATABASE_URL=postgresql://usuario:senha@localhost:5432/fvmotos
 ```
 
-> Não versionar segredos reais.
+Se houver chaves comprometidas no repositório, rotacione-as imediatamente (Supabase / Vercel) e remova os valores do histórico do Git.
+
+## 🔧 Melhores práticas e observações
+
+- Remover `.env` do histórico e adicionar `.env` ao `.gitignore`.
+- Consolidar o gerenciador de pacotes (há `package-lock.json` e arquivos relacionados ao Bun no repositório atualmente).
+- Considere adicionar CI (lint/build/test) e dependabot para segurança de dependências.
 
 ## 🤝 Contribuição
 
-1. Crie uma branch para sua feature
-2. Faça commits descritivos
-3. Abra um Pull Request
+1. Abra uma branch com o prefixo `feature/` ou `fix/`.
+2. Faça commits pequenos e descritivos.
+3. Abra um Pull Request descrevendo a motivação.
 
 ## 📝 Licença
 
-Defina aqui a licença do projeto (ex.: MIT).
+O código-fonte está licenciado sob a licença MIT — veja o arquivo `LICENSE` para o texto completo.
 
 ---
 
