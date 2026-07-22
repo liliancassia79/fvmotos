@@ -85,10 +85,9 @@ export function OrcamentosTab() {
     <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
       <Panel title="Novo Orçamento">
         <form onSubmit={salvar} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Cliente" value={cliente} onChange={setCliente} placeholder="Nome" />
-            <Field label="Celular" value={celular} onChange={setCelular} placeholder="(11) 99999-0000" />
-          </div>
+          <ClientePicker nome={cliente} celular={celular}
+            onChange={(v) => { setCliente(v.nome); setCelular(v.celular); }} />
+
 
           <div className="rounded-md border border-border p-3">
             <p className="text-xs font-medium text-muted-foreground mb-2">Adicionar do catálogo</p>
