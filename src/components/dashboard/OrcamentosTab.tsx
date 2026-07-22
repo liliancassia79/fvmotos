@@ -7,6 +7,7 @@ import { orcamentoMensagem } from "@/lib/oficina-storage";
 import { formatBRL, whatsappLink } from "@/lib/os-storage";
 import { formasPagamento, formaPagamentoLabel, type FormaPagamento } from "@/lib/pagamento";
 import { Field, Panel, Empty, Pill } from "./ui-bits";
+import { ClientePicker } from "./ClientePicker";
 
 export function OrcamentosTab() {
   const [items, setItems] = useState<OrcamentoDB[]>([]);
