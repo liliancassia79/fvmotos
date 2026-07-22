@@ -16,6 +16,8 @@ import { FaturamentoTab } from "@/components/dashboard/FaturamentoTab";
 import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
 import { DashboardTab } from "@/components/dashboard/DashboardTab";
 import { FotosUpload } from "@/components/dashboard/FotosUpload";
+import { ClientePicker } from "@/components/dashboard/ClientePicker";
+import { reassignQueueOsId } from "@/lib/foto-storage";
 import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
@@ -198,7 +200,9 @@ function OSView() {
       if (editingId) {
         await osDB.update(editingId, { ...rest, valor, formaPagamento, atualizadoEm: Date.now() });
       } else {
-        await osDB.create({ ...rest, valor, formaPagamento, status: "fila" });
+        const oldOsId = tempId;
+        const newId = await osDB.create({ ...rest, valor, formaPagamento, status: "fila" });
+        await reassignQueueOsId(oldOsId, newId);
       }
       resetForm();
     } catch (e) { console.error(e); alert("Erro ao salvar"); }
@@ -272,8 +276,9 @@ function OSView() {
             <form onSubmit={submit} className="mt-4 space-y-3">
               <Field label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} placeholder="Honda CG 160" />
               <Field label="Placa" value={form.placa} onChange={(v) => setForm({ ...form, placa: v.toUpperCase() })} placeholder="ABC1D23" />
-              <Field label="Cliente" value={form.cliente} onChange={(v) => setForm({ ...form, cliente: v })} placeholder="Nome completo" />
-              <Field label="Celular" value={form.celular} onChange={(v) => setForm({ ...form, celular: v })} placeholder="(11) 99999-0000" />
+              <ClientePicker nome={form.cliente} celular={form.celular}
+                onChange={(v) => setForm({ ...form, cliente: v.nome, celular: v.celular })} />
+
               <Field label="Valor (R$)" value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} placeholder="350,00" />
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Forma de pagamento</label>

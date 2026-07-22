@@ -7,6 +7,8 @@ import type { OrdemServico, OSStatus } from "./os-storage";
 import { statusLabel } from "./os-storage";
 import { formaPagamentoLabel, type FormaPagamento } from "./pagamento";
 import { pushSheet, deleteSheet, syncSheet, fmtDate } from "./sheets-sync";
+import { registerPendingResolver } from "./foto-storage";
+import { getDoc } from "firebase/firestore";
 
 
 function tsToMillis(v: any): number {
@@ -365,3 +367,18 @@ export async function backfillSheets() {
     ...agendamentos.docs.map((d) => syncSheet("Agendamentos", d.id, agendamentoSheetRow(fromAg(d.id, d.data())))),
   ]);
 }
+
+// ---------- Foto storage: substituir placeholder pela URL final ----------
+registerPendingResolver(async (osId, placeholderId, finalUrl) => {
+  const ref = doc(db, "ordens_servico", osId);
+  let snap;
+  try { snap = await getDocFromCache(ref); } catch { snap = await getDoc(ref); }
+  if (!snap.exists()) { snap = await getDoc(ref); }
+  if (!snap.exists()) return;
+  const data = snap.data() as any;
+  const fotos: string[] = Array.isArray(data.fotos) ? data.fotos : [];
+  if (!fotos.includes(placeholderId)) return;
+  const novas = fotos.map((f) => (f === placeholderId ? finalUrl : f));
+  await updateDoc(ref, { fotos: novas, atualizadoEm: Date.now() });
+  scheduleCacheSync(() => syncOSById(osId));
+});
