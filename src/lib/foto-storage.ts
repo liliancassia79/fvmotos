@@ -13,6 +13,7 @@ type QueueItem = {
   osId: string;
   file: File;
   path: string;
+  finalUrl?: string;
   timestamp: number;
 };
 
@@ -138,12 +139,13 @@ export async function processQueue(): Promise<void> {
   const all = (await db.getAll(STORE)) as QueueItem[];
   for (const item of all) {
     try {
-      const finalUrl = await tryUpload(item.file, item.path);
+      const finalUrl = item.finalUrl ?? await tryUpload(item.file, item.path);
       if (resolver) {
         let resolved = false;
         try { resolved = await resolver(item.osId, item.placeholderId, finalUrl); }
         catch (e) { console.warn("[fotos] resolver falhou", e); continue; }
         if (!resolved) {
+          if (!item.finalUrl) await db.put(STORE, { ...item, finalUrl });
           console.warn("[fotos] O.S. ainda não pronta para receber a foto; manter na fila", item.osId);
           continue;
         }
