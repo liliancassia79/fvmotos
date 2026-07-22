@@ -16,6 +16,8 @@ import { FaturamentoTab } from "@/components/dashboard/FaturamentoTab";
 import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
 import { DashboardTab } from "@/components/dashboard/DashboardTab";
 import { FotosUpload } from "@/components/dashboard/FotosUpload";
+import { ClientePicker } from "@/components/dashboard/ClientePicker";
+import { reassignQueueOsId } from "@/lib/foto-storage";
 import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
