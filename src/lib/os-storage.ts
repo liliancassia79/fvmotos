@@ -55,10 +55,12 @@ export function relativeTime(ts: number) {
 }
 
 export function whatsappLink(celular: string, mensagem: string) {
-  const digits = celular.replace(/\D/g, "");
-  const phone = digits.length > 0 ? (digits.startsWith("55") ? digits : "55" + digits) : "";
+  const digits = (celular || "").replace(/\D/g, "");
+  if (!digits) return "";
+  const phone = digits.startsWith("55") ? digits : "55" + digits;
   return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
 }
+
 
 export function exportarCSV(items: OrdemServico[]) {
   const headers = ["Modelo", "Placa", "Cliente", "Celular", "Defeito", "Valor", "Status", "Criado em"];
