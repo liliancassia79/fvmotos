@@ -2,8 +2,8 @@ import { useRef, useState } from "react";
 import { uploadFotoMoto, removerFotoMoto, resolveFotoPreview, isPendingFoto } from "@/lib/foto-storage";
 
 export function FotosUpload({
-  fotos, osId, onChange,
-}: { fotos: string[]; osId: string; onChange: (fotos: string[]) => void }) {
+  fotos, osId, onChange, onBusyChange,
+}: { fotos: string[]; osId: string; onChange: (fotos: string[]) => void; onBusyChange?: (busy: boolean) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -11,6 +11,7 @@ export function FotosUpload({
   async function handleFiles(files: FileList | null) {
     if (!files || !files.length) return;
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const urls: string[] = [];
       for (const f of Array.from(files)) {
@@ -22,6 +23,7 @@ export function FotosUpload({
       alert("Falha ao enviar foto: " + (e as Error).message);
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 

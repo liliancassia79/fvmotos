@@ -17,7 +17,7 @@ import { CatalogoTab } from "@/components/dashboard/CatalogoTab";
 import { DashboardTab } from "@/components/dashboard/DashboardTab";
 import { FotosUpload } from "@/components/dashboard/FotosUpload";
 import { ClientePicker } from "@/components/dashboard/ClientePicker";
-import { reassignQueueOsId } from "@/lib/foto-storage";
+import { reassignQueueOsId, resolveFotoPreview, isPendingFoto } from "@/lib/foto-storage";
 import logo from "@/assets/fv-motos-logo.png";
 
 export const Route = createFileRoute("/")({
@@ -152,6 +152,7 @@ function OSView() {
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
   const [catalogo, setCatalogo] = useState<ServicoDB[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadingFotos, setUploadingFotos] = useState(false);
 
   useEffect(() => {
     const unsub = osDB.subscribe(setItems);
@@ -323,6 +324,7 @@ function OSView() {
               <FotosUpload
                 fotos={form.fotos}
                 osId={fotosId}
+                onBusyChange={setUploadingFotos}
                 onChange={async (fotos) => {
                   setForm((f) => ({ ...f, fotos }));
                   if (editingId) {
@@ -331,8 +333,8 @@ function OSView() {
                 }}
               />
 
-              <button type="submit" disabled={saving} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
-                {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar O.S."}
+              <button type="submit" disabled={saving || uploadingFotos} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                {uploadingFotos ? "Carregando foto..." : saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar O.S."}
               </button>
             </form>
           </div>
@@ -460,11 +462,16 @@ function Card({
 
       {it.fotos && it.fotos.length > 0 && (
         <div className="mt-2 flex gap-1 overflow-x-auto">
-          {it.fotos.slice(0, 4).map((url) => (
-            <a key={url} href={url} target="_blank" rel="noreferrer" className="shrink-0">
-              <img src={url} alt="" className="h-12 w-12 rounded object-cover border border-border" />
+          {it.fotos.slice(0, 4).map((url) => {
+            const preview = resolveFotoPreview(url);
+            const pending = isPendingFoto(url);
+            return (
+            <a key={url} href={pending ? undefined : preview} target="_blank" rel="noreferrer" className="shrink-0 relative">
+              <img src={preview} alt="" className={`h-12 w-12 rounded object-cover border border-border ${pending ? "opacity-70" : ""}`} />
+              {pending && <span className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[8px] text-center">...</span>}
             </a>
-          ))}
+          );
+          })}
           {it.fotos.length > 4 && (
             <span className="shrink-0 h-12 w-12 rounded border border-border bg-muted flex items-center justify-center text-xs">+{it.fotos.length - 4}</span>
           )}

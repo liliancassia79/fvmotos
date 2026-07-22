@@ -374,11 +374,12 @@ registerPendingResolver(async (osId, placeholderId, finalUrl) => {
   let snap;
   try { snap = await getDocFromCache(ref); } catch { snap = await getDoc(ref); }
   if (!snap.exists()) { snap = await getDoc(ref); }
-  if (!snap.exists()) return;
+  if (!snap.exists()) return false;
   const data = snap.data() as any;
   const fotos: string[] = Array.isArray(data.fotos) ? data.fotos : [];
-  if (!fotos.includes(placeholderId)) return;
+  if (!fotos.includes(placeholderId)) return false;
   const novas = fotos.map((f) => (f === placeholderId ? finalUrl : f));
   await updateDoc(ref, { fotos: novas, atualizadoEm: Date.now() });
   scheduleCacheSync(() => syncOSById(osId));
+  return true;
 });
