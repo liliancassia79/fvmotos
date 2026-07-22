@@ -7,6 +7,8 @@ import type { OrdemServico, OSStatus } from "./os-storage";
 import { statusLabel } from "./os-storage";
 import { formaPagamentoLabel, type FormaPagamento } from "./pagamento";
 import { pushSheet, deleteSheet, syncSheet, fmtDate } from "./sheets-sync";
+import { registerPendingResolver } from "./foto-storage";
+import { getDoc } from "firebase/firestore";
 
 
 function tsToMillis(v: any): number {
