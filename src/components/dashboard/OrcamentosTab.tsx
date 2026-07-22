@@ -66,11 +66,17 @@ export function OrcamentosTab() {
     if (!confirm("Remover orçamento?")) return;
     await orcDB.remove(id);
   }
-  async function enviarWhats(o: OrcamentoDB) {
+  function enviarWhats(o: OrcamentoDB) {
     if (!o.celular) { alert("Cliente sem celular"); return; }
-    await setStatus(o.id, "enviado");
-    window.open(whatsappLink(o.celular, orcamentoMensagem(o)), "_blank");
+    const url = whatsappLink(o.celular, orcamentoMensagem(o));
+    if (!url) { alert("Celular inválido"); return; }
+    // Abrir imediatamente para não perder o gesto do usuário (senão o mobile bloqueia)
+    const win = window.open(url, "_blank");
+    if (!win) window.location.href = url;
+    // Atualizar status em segundo plano
+    orcDB.setStatus(o.id, "enviado").catch((e) => console.warn("[orc] status", e));
   }
+
 
   const total = itens.reduce((s, i) => s + (i.valor || 0), 0);
 
