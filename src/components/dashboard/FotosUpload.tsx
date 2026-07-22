@@ -35,15 +35,22 @@ export function FotosUpload({
     <div>
       <label className="text-xs font-medium text-muted-foreground">Fotos da moto</label>
       <div className="mt-2 flex flex-wrap gap-2">
-        {(fotos || []).map((url) => (
-          <div key={url} className="relative group">
-            <a href={url} target="_blank" rel="noreferrer">
-              <img src={url} alt="moto" className="h-20 w-20 rounded-md object-cover border border-border" />
-            </a>
-            <button type="button" onClick={() => remover(url)}
-              className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100">×</button>
-          </div>
-        ))}
+        {(fotos || []).map((url) => {
+          const preview = resolveFotoPreview(url);
+          const pending = isPendingFoto(url);
+          return (
+            <div key={url} className="relative group">
+              <a href={pending ? undefined : preview} target="_blank" rel="noreferrer">
+                <img src={preview} alt="moto" className={`h-20 w-20 rounded-md object-cover border border-border ${pending ? "opacity-70" : ""}`} />
+              </a>
+              {pending && (
+                <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] text-center py-0.5">enviando…</span>
+              )}
+              <button type="button" onClick={() => remover(url)}
+                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100">×</button>
+            </div>
+          );
+        })}
         <button type="button" disabled={busy} onClick={() => cameraRef.current?.click()}
           className="h-20 w-20 rounded-md border-2 border-dashed border-border bg-muted/30 text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50">
           {busy ? "..." : "📷 Câmera"}
