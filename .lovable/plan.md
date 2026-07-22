@@ -1,28 +1,43 @@
-## Plano para fazer o app abrir e funcionar no celular
+## Diagnóstico
 
-1. **Remover o que ainda depende do backend antigo**
-   - O app foi migrado para Firebase, mas ainda há middleware/imports antigos de autenticação/backend no `src/start.ts`.
-   - Vou remover essa dependência para evitar falhas na abertura, principalmente em build/publicação/celular.
+O botão "Enviar via WhatsApp" na aba Orçamentos não abre o WhatsApp no celular (e às vezes nem no desktop) por causa de um problema clássico de **popup bloqueado**.
 
-2. **Tornar a abertura independente do Google Sheets**
-   - Hoje o app roda um `backfillSheets()` automaticamente ao abrir e essa função usa `getDocs`, que força leitura de rede.
-   - Em rede móvel fraca ou modo avião isso pode causar erro/instabilidade.
-   - Vou tirar esse backfill automático da inicialização e manter a planilha apenas como sincronização em segundo plano quando houver internet.
+No arquivo `src/components/dashboard/OrcamentosTab.tsx`, a função `enviarWhats` faz:
 
-3. **Corrigir o modo offline real do Firebase**
-   - Ajustar as leituras restantes que ainda usam `getDoc/getDocs` depois de salvar/editar para não bloquear o app quando estiver offline.
-   - Onde precisar sincronizar planilha, usar os dados locais já disponíveis ou tratar como tarefa de fundo, sem travar salvamento.
+```ts
+async function enviarWhats(o) {
+  if (!o.celular) { alert("Cliente sem celular"); return; }
+  await setStatus(o.id, "enviado");          // ← espera o Firestore responder
+  window.open(whatsappLink(...), "_blank");  // ← só abre DEPOIS do await
+}
+```
 
-4. **Melhorar salvamento de serviços no Catálogo**
-   - Garantir que criar/editar/remover serviço no catálogo não dependa da resposta imediata da internet.
-   - Exibir erro claro só se o Firebase realmente rejeitar a gravação.
-   - Manter atualização automática por `onSnapshot`.
+Quando existe um `await` antes do `window.open`, o navegador perde o vínculo com o clique do usuário. Resultado:
+- **Celular (Chrome/Safari)**: bloqueia a abertura silenciosamente — nada acontece.
+- **Desktop**: às vezes mostra aviso de pop-up bloqueado.
 
-5. **Manter o PWA sem cache antigo agressivo**
-   - Conferir que o service worker atual continua como limpeza/kill-switch, sem cachear app antigo.
-   - Manter instalação pelo manifesto, mas sem deixar o celular preso numa versão velha.
+Como a gravação no Firestore pode demorar (rede móvel fraca, offline), o clique "expira" antes do `window.open` rodar.
 
-6. **Verificação final**
-   - Testar abertura da tela inicial.
-   - Testar criar serviço no Catálogo.
-   - Testar comportamento offline/simulado para confirmar que o app não quebra quando a rede cai.
+O mesmo padrão existe no envio de OS via WhatsApp (verificar `src/routes/index.tsx` `OSView`) e pode ter o mesmo defeito — vou revisar junto.
+
+## Correção proposta
+
+1. **`src/components/dashboard/OrcamentosTab.tsx`** — reordenar `enviarWhats`:
+   - Abrir o `window.open` **imediatamente** (mesmo tick do clique), enquanto o gesto ainda é válido.
+   - Chamar `setStatus(o.id, "enviado")` depois, sem `await` bloqueando (fire-and-forget com `.catch` para log).
+   - Validar o celular antes: se ficar sem dígitos após limpar, avisar "Celular inválido" em vez de gerar um link `https://wa.me/?text=...` que o WhatsApp rejeita.
+
+2. **`src/lib/os-storage.ts`** — endurecer `whatsappLink`:
+   - Se `digits` estiver vazio, retornar string vazia (para o caller detectar e avisar).
+   - Manter regex que remove o `+` e caracteres não numéricos.
+
+3. **Revisar `src/routes/index.tsx`** (envio da OS pelo WhatsApp) e aplicar o mesmo padrão se estiver com `await` antes do `window.open`.
+
+4. **Teste manual** no preview:
+   - Criar orçamento com celular válido → clicar Enviar → confirmar que abre `wa.me/55...` numa nova aba com a mensagem.
+   - Testar sem celular → deve mostrar "Cliente sem celular".
+   - Testar com celular só com dígitos inválidos (ex.: `abc`) → deve mostrar "Celular inválido".
+
+## Fora do escopo
+
+- Não altero a mensagem gerada por `orcamentoMensagem`, layout da aba, nem a lógica de sincronização com a planilha.
