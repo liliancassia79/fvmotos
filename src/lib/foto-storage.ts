@@ -76,10 +76,10 @@ async function compactarFotoLocal(file: File): Promise<string | null> {
 
   try {
     const img = await loadImage(file);
-    let maxEdge = 1280;
-    let quality = 0.72;
+    let maxEdge = 960;
+    let quality = 0.68;
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
       const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
       const width = Math.max(1, Math.round(img.width * scale));
       const height = Math.max(1, Math.round(img.height * scale));
@@ -90,9 +90,9 @@ async function compactarFotoLocal(file: File): Promise<string | null> {
       if (!ctx) return null;
       ctx.drawImage(img, 0, 0, width, height);
       const dataUrl = canvas.toDataURL("image/jpeg", quality);
-      if (dataUrl.length < 850_000 || attempt === 3) return dataUrl;
-      maxEdge = Math.round(maxEdge * 0.78);
-      quality = Math.max(0.52, quality - 0.08);
+      if (dataUrl.length < 320_000 || attempt === 5) return dataUrl;
+      maxEdge = Math.round(maxEdge * 0.75);
+      quality = Math.max(0.48, quality - 0.08);
     }
   } catch (e) {
     console.warn("[fotos] fallback local falhou", e);
@@ -111,16 +111,14 @@ async function tryUpload(file: File, path: string): Promise<string> {
 }
 
 export async function uploadFotoMoto(file: File, osId: string): Promise<string> {
+  const fotoLocal = await compactarFotoLocal(file);
+  if (fotoLocal) return fotoLocal;
+
   const ext = (file.type.split("/")[1] || "jpg").toLowerCase();
   const path = `${ROOT}/${osId}/${crypto.randomUUID()}.${ext}`;
   try {
     return await tryUpload(file, path);
   } catch (e: any) {
-    const fallbackLocal = await compactarFotoLocal(file);
-    if (fallbackLocal) {
-      console.warn("[fotos] upload remoto falhou; foto salva localmente na O.S.", e);
-      return fallbackLocal;
-    }
     // enfileira e devolve placeholder — a UI mostrará o preview local até subir
     const placeholderId = `${PENDING_PREFIX}${crypto.randomUUID()}`;
     try { previewMap.set(placeholderId, URL.createObjectURL(file)); } catch {}

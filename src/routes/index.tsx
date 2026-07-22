@@ -152,6 +152,7 @@ function OSView() {
   const [filtroStatus, setFiltroStatus] = useState<OSStatus | "todos">("todos");
   const [catalogo, setCatalogo] = useState<ServicoDB[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadingFotos, setUploadingFotos] = useState(false);
 
   useEffect(() => {
     const unsub = osDB.subscribe(setItems);
@@ -323,6 +324,7 @@ function OSView() {
               <FotosUpload
                 fotos={form.fotos}
                 osId={fotosId}
+                onBusyChange={setUploadingFotos}
                 onChange={async (fotos) => {
                   setForm((f) => ({ ...f, fotos }));
                   if (editingId) {
@@ -331,8 +333,8 @@ function OSView() {
                 }}
               />
 
-              <button type="submit" disabled={saving} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
-                {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar O.S."}
+              <button type="submit" disabled={saving || uploadingFotos} className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                {uploadingFotos ? "Carregando foto..." : saving ? "Salvando..." : editingId ? "Salvar alterações" : "Cadastrar O.S."}
               </button>
             </form>
           </div>
