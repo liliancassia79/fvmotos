@@ -200,7 +200,9 @@ function OSView() {
       if (editingId) {
         await osDB.update(editingId, { ...rest, valor, formaPagamento, atualizadoEm: Date.now() });
       } else {
-        await osDB.create({ ...rest, valor, formaPagamento, status: "fila" });
+        const oldOsId = tempId;
+        const newId = await osDB.create({ ...rest, valor, formaPagamento, status: "fila" });
+        await reassignQueueOsId(oldOsId, newId);
       }
       resetForm();
     } catch (e) { console.error(e); alert("Erro ao salvar"); }
