@@ -18,11 +18,11 @@ export function ClientePicker({ nome, celular, onChange, labelNome = "Cliente", 
   useEffect(() => clientesDB.subscribe(setClientes), []);
 
   useEffect(() => {
-    function onDoc(e: MouseEvent) {
+    function onDoc(e: Event) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
   }, []);
 
   const sugestoes = useMemo(() => {
