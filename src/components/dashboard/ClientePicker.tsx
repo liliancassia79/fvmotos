@@ -54,7 +54,7 @@ export function ClientePicker({ nome, celular, onChange, labelNome = "Cliente", 
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       <div className={`relative ${open ? "z-50" : ""}`} ref={wrapRef}>
         <label className="text-xs font-medium text-muted-foreground">{labelNome}</label>
         <input
@@ -67,7 +67,7 @@ export function ClientePicker({ nome, celular, onChange, labelNome = "Cliente", 
           autoComplete="off"
         />
         {open && sugestoes.length > 0 && (
-          <ul className="static z-[100] mt-2 max-h-56 w-full overflow-auto rounded-md border border-border bg-card shadow-lg sm:absolute sm:mt-1">
+          <ul className="static z-[100] mt-2 max-h-56 w-full overflow-auto rounded-md border border-border bg-card shadow-lg md:absolute md:mt-1">
             {sugestoes.map((c) => (
               <li key={c.id}>
                 <button type="button"
