@@ -39,7 +39,7 @@ export function isPendingFoto(url: string): boolean {
   return !!url && url.startsWith(PENDING_PREFIX);
 }
 
-type PendingResolver = (osId: string, placeholderId: string, finalUrl: string) => Promise<void>;
+type PendingResolver = (osId: string, placeholderId: string, finalUrl: string) => Promise<boolean>;
 let resolver: PendingResolver | null = null;
 export function registerPendingResolver(fn: PendingResolver) { resolver = fn; }
 
@@ -54,7 +54,50 @@ export async function reassignQueueOsId(oldOsId: string, newOsId: string) {
         await db.put(STORE, it);
       }
     }
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => { processQueue(); }, 1200);
+    }
   } catch (e) { console.warn("[fotos] reassignQueueOsId", e); }
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Não foi possível ler a imagem.")); };
+    img.src = url;
+  });
+}
+
+async function compactarFotoLocal(file: File): Promise<string | null> {
+  if (typeof window === "undefined" || !file.type.startsWith("image/")) return null;
+
+  try {
+    const img = await loadImage(file);
+    let maxEdge = 1280;
+    let quality = 0.72;
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      if (dataUrl.length < 850_000 || attempt === 3) return dataUrl;
+      maxEdge = Math.round(maxEdge * 0.78);
+      quality = Math.max(0.52, quality - 0.08);
+    }
+  } catch (e) {
+    console.warn("[fotos] fallback local falhou", e);
+  }
+
+  return null;
 }
 
 async function tryUpload(file: File, path: string): Promise<string> {
@@ -72,9 +115,10 @@ export async function uploadFotoMoto(file: File, osId: string): Promise<string> 
   try {
     return await tryUpload(file, path);
   } catch (e: any) {
-    const code = e?.code as string | undefined;
-    if (code === "storage/unauthorized") {
-      throw new Error("Sem permissão para enviar (verifique as regras do Firebase Storage).");
+    const fallbackLocal = await compactarFotoLocal(file);
+    if (fallbackLocal) {
+      console.warn("[fotos] upload remoto falhou; foto salva localmente na O.S.", e);
+      return fallbackLocal;
     }
     // enfileira e devolve placeholder — a UI mostrará o preview local até subir
     const placeholderId = `${PENDING_PREFIX}${crypto.randomUUID()}`;
@@ -96,8 +140,16 @@ export async function processQueue(): Promise<void> {
     try {
       const finalUrl = await tryUpload(item.file, item.path);
       if (resolver) {
-        try { await resolver(item.osId, item.placeholderId, finalUrl); }
+        let resolved = false;
+        try { resolved = await resolver(item.osId, item.placeholderId, finalUrl); }
         catch (e) { console.warn("[fotos] resolver falhou", e); continue; }
+        if (!resolved) {
+          console.warn("[fotos] O.S. ainda não pronta para receber a foto; manter na fila", item.osId);
+          continue;
+        }
+      } else {
+        console.warn("[fotos] resolver não registrado; manter foto na fila");
+        continue;
       }
       if (item.id != null) await db.delete(STORE, item.id);
       const preview = previewMap.get(item.placeholderId);
