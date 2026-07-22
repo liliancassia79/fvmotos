@@ -38,12 +38,12 @@ function writeQueue(items: QueueItem[]) {
   window.localStorage.setItem(QUEUE_KEY, JSON.stringify(items));
 }
 
-function requestDrain(delay = 0) {
+function requestDrain(delay = 0, force = false) {
   if (typeof window === "undefined") return;
   if (drainTimer) window.clearTimeout(drainTimer);
   drainTimer = window.setTimeout(() => {
     drainTimer = null;
-    flushSheetQueue();
+    flushSheetQueue(force);
   }, delay);
 }
 
@@ -57,7 +57,7 @@ function enqueueSheetSync(tab: Tab, id: string, values: SheetValue[], action: Sh
   const queue = readQueue().filter((item) => item.key !== key);
   queue.push({ key, tab, id, values, action, attempts: 0, nextTryAt: Date.now() });
   writeQueue(queue);
-  requestDrain(0);
+  requestDrain(0, true);
 }
 
 export function syncSheet(
@@ -69,7 +69,7 @@ export function syncSheet(
   return syncSheetRow({ data: { tab, id, values, action } }).then(() => undefined);
 }
 
-export async function flushSheetQueue() {
+export async function flushSheetQueue(force = false) {
   if (!hasBrowserStorage() || draining) return;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
@@ -80,7 +80,7 @@ export async function flushSheetQueue() {
       const item = queue[0];
       if (!item) return;
 
-      const wait = item.nextTryAt - Date.now();
+      const wait = force ? 0 : item.nextTryAt - Date.now();
       if (wait > 0) {
         requestDrain(wait);
         return;
@@ -129,10 +129,10 @@ export function fmtDate(ms?: number): string {
 }
 
 if (typeof window !== "undefined") {
-  window.addEventListener("online", () => requestDrain(0));
-  window.addEventListener("focus", () => requestDrain(0));
+  window.addEventListener("online", () => requestDrain(0, true));
+  window.addEventListener("focus", () => requestDrain(0, true));
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) requestDrain(0);
+    if (!document.hidden) requestDrain(0, true);
   });
-  requestDrain(500);
+  requestDrain(500, true);
 }
