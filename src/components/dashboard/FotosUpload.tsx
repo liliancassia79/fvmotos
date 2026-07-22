@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { uploadFotoMoto, removerFotoMoto } from "@/lib/foto-storage";
+import { uploadFotoMoto, removerFotoMoto, resolveFotoPreview, isPendingFoto } from "@/lib/foto-storage";
 
 export function FotosUpload({
   fotos, osId, onChange,
