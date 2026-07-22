@@ -18,11 +18,11 @@ export function ClientePicker({ nome, celular, onChange, labelNome = "Cliente", 
   useEffect(() => clientesDB.subscribe(setClientes), []);
 
   useEffect(() => {
-    function onDoc(e: MouseEvent) {
+    function onDoc(e: Event) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
   }, []);
 
   const sugestoes = useMemo(() => {
@@ -60,6 +60,7 @@ export function ClientePicker({ nome, celular, onChange, labelNome = "Cliente", 
         <input
           value={nome}
           onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
           onChange={(e) => { onChange({ nome: e.target.value, celular }); setOpen(true); }}
           placeholder="Nome completo"
           className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -69,7 +70,9 @@ export function ClientePicker({ nome, celular, onChange, labelNome = "Cliente", 
           <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-card shadow-lg">
             {sugestoes.map((c) => (
               <li key={c.id}>
-                <button type="button" onClick={() => pick(c)}
+                <button type="button"
+                  onPointerDown={(e) => { e.preventDefault(); pick(c); }}
+                  onClick={() => pick(c)}
                   className="block w-full text-left px-3 py-2 text-sm hover:bg-muted">
                   <div className="font-medium truncate">{c.nome}</div>
                   {c.celular && <div className="text-xs text-muted-foreground">{c.celular}</div>}
